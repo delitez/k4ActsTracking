@@ -8,7 +8,8 @@ gaudi_add_module(k4ActsTrackingPlugins
   DD4hep::DDCore DD4hep::DDRec
   ActsCore ActsPluginDD4hep
   ActsDD4hep::ActsDD4hep
-  )
+  Boost::program_options
+ )
 
 set(GAUDI_GENCONF_DIR "genConfDir")
 
