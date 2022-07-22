@@ -18,17 +18,15 @@
 #include <variant>
 
 namespace ActsExamples {
-namespace detail {
+  namespace detail {
 
-using InterpolatedMagneticField2 = Acts::InterpolatedBFieldMap<
-    Acts::detail::Grid<Acts::Vector2, Acts::detail::EquidistantAxis,
-                       Acts::detail::EquidistantAxis>>;
+    using InterpolatedMagneticField2 = Acts::InterpolatedBFieldMap<
+        Acts::detail::Grid<Acts::Vector2, Acts::detail::EquidistantAxis, Acts::detail::EquidistantAxis>>;
 
-using InterpolatedMagneticField3 =
-    Acts::InterpolatedBFieldMap<Acts::detail::Grid<
-        Acts::Vector3, Acts::detail::EquidistantAxis,
-        Acts::detail::EquidistantAxis, Acts::detail::EquidistantAxis>>;
+    using InterpolatedMagneticField3 =
+        Acts::InterpolatedBFieldMap<Acts::detail::Grid<Acts::Vector3, Acts::detail::EquidistantAxis,
+                                                       Acts::detail::EquidistantAxis, Acts::detail::EquidistantAxis>>;
 
-}  // namespace detail
+  }  // namespace detail
 
 }  // namespace ActsExamples

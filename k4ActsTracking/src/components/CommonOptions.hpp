@@ -19,75 +19,68 @@
 
 namespace ActsExamples {
 
-enum class OutputFormat : uint8_t {
-  DirectoryOnly = 0,
-  Root = 1,
-  Csv = 2,
-  Obj = 4,
-  Json = 8,
-  Cbor = 16,
-  Txt = 32,
-  All = std::numeric_limits<uint8_t>::max()
-};
+  enum class OutputFormat : uint8_t {
+    DirectoryOnly = 0,
+    Root          = 1,
+    Csv           = 2,
+    Obj           = 4,
+    Json          = 8,
+    Cbor          = 16,
+    Txt           = 32,
+    All           = std::numeric_limits<uint8_t>::max()
+  };
 
-ACTS_DEFINE_ENUM_BITWISE_OPERATORS(OutputFormat)
+  ACTS_DEFINE_ENUM_BITWISE_OPERATORS(OutputFormat)
 
-namespace Options {
+  namespace Options {
 
-/// Construct the options description with minimal default options.
-///
-/// @param caption Optional help text caption
-boost::program_options::options_description makeDefaultOptions(
-    std::string caption = std::string());
+    /// Construct the options description with minimal default options.
+    ///
+    /// @param caption Optional help text caption
+    boost::program_options::options_description makeDefaultOptions(std::string caption = std::string());
 
-/// Add sequencer options, e.g. number of events
-void addSequencerOptions(boost::program_options::options_description& opt);
+    /// Add sequencer options, e.g. number of events
+    void addSequencerOptions(boost::program_options::options_description& opt);
 
-/// Add random number options such as the global seed.
-void addRandomNumbersOptions(boost::program_options::options_description& opt);
+    /// Add random number options such as the global seed.
+    void addRandomNumbersOptions(boost::program_options::options_description& opt);
 
-/// Add common geometry-related options.
-void addGeometryOptions(boost::program_options::options_description& opt);
+    /// Add common geometry-related options.
+    void addGeometryOptions(boost::program_options::options_description& opt);
 
-/// Add common material-related options.
-void addMaterialOptions(boost::program_options::options_description& opt);
+    /// Add common material-related options.
+    void addMaterialOptions(boost::program_options::options_description& opt);
 
-/// Add common input-related options.
-void addInputOptions(boost::program_options::options_description& opt);
+    /// Add common input-related options.
+    void addInputOptions(boost::program_options::options_description& opt);
 
-/// Add common output-related options.
-void addOutputOptions(boost::program_options::options_description& opt,
-                      OutputFormat format);
+    /// Add common output-related options.
+    void addOutputOptions(boost::program_options::options_description& opt, OutputFormat format);
 
+    /////From MagneticFieldOptions.hpp
+    using Description = ::boost::program_options::options_description;
+    void addMagneticFieldOptions(Description& desc);
 
+    /// Parse options and return the resulting variables map.
+    ///
+    /// Automatically prints the help text if requested.
+    ///
+    /// @returns Empty variables map if help text was shown.
 
-/////From MagneticFieldOptions.hpp
-using Description = ::boost::program_options::options_description;
-void addMagneticFieldOptions(Description& desc);
+    // boost::program_options::variables_map parse(
+    //     const boost::program_options::options_description& opt, int arg_c,
+    //     char* arg_v[]);
 
-/// Parse options and return the resulting variables map.
-///
-/// Automatically prints the help text if requested.
-///
-/// @returns Empty variables map if help text was shown.
+    /// Read the log level.
+    Acts::Logging::Level readLogLevel(const boost::program_options::variables_map& vm);
 
+    /// Read the sequencer config.
+    // Sequencer::Config readSequencerConfig(
+    //     const boost::program_options::variables_map& vm);
+    //
+    // // Read the random numbers config.
+    // RandomNumbers::Config readRandomNumbersConfig(
+    //     const boost::program_options::variables_map& vm);
 
-
-// boost::program_options::variables_map parse(
-//     const boost::program_options::options_description& opt, int arg_c,
-//     char* arg_v[]);
-
-/// Read the log level.
-Acts::Logging::Level readLogLevel(
-    const boost::program_options::variables_map& vm);
-
-/// Read the sequencer config.
-// Sequencer::Config readSequencerConfig(
-//     const boost::program_options::variables_map& vm);
-//
-// // Read the random numbers config.
-// RandomNumbers::Config readRandomNumbersConfig(
-//     const boost::program_options::variables_map& vm);
-
-}  // namespace Options
+  }  // namespace Options
 }  // namespace ActsExamples

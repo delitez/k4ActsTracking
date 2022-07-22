@@ -9,15 +9,15 @@
 #pragma once
 
 namespace boost {
-namespace program_options {
-class options_description;
-class variables_map;
-}  // namespace program_options
+  namespace program_options {
+    class options_description;
+    class variables_map;
+  }  // namespace program_options
 }  // namespace boost
 
 namespace ActsExamples {
-namespace Options {
-using Description = ::boost::program_options::options_description;
-using Variables = ::boost::program_options::variables_map;
-}  // namespace Options
+  namespace Options {
+    using Description = ::boost::program_options::options_description;
+    using Variables   = ::boost::program_options::variables_map;
+  }  // namespace Options
 }  // namespace ActsExamples

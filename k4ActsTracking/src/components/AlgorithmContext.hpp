@@ -16,34 +16,33 @@
 
 namespace ActsExamples {
 
-class WhiteBoard;
+  class WhiteBoard;
 
-/// Aggregated information to run one algorithm over one event.
-struct AlgorithmContext {
-  /// @brief contructor with arguments
-  ///
-  /// @param alg is the algorithm/service/writer number
-  /// @param event ist the event number
-  /// @param store is the event-wise event store
-  ///
-  /// @note the event dependent contexts are to be added by the
-  /// Sequencer::m_decorators list
-  AlgorithmContext(size_t alg, size_t event, WhiteBoard& store)
-      : algorithmNumber(alg), eventNumber(event), eventStore(store) {}
+  /// Aggregated information to run one algorithm over one event.
+  struct AlgorithmContext {
+    /// @brief contructor with arguments
+    ///
+    /// @param alg is the algorithm/service/writer number
+    /// @param event ist the event number
+    /// @param store is the event-wise event store
+    ///
+    /// @note the event dependent contexts are to be added by the
+    /// Sequencer::m_decorators list
+    AlgorithmContext(size_t alg, size_t event, WhiteBoard& store)
+        : algorithmNumber(alg), eventNumber(event), eventStore(store) {}
 
-  /// @brief ++operator overload to increase the algorithm number
-  AlgorithmContext& operator++() {
-    algorithmNumber += 1;
-    return (*this);
-  }
+    /// @brief ++operator overload to increase the algorithm number
+    AlgorithmContext& operator++() {
+      algorithmNumber += 1;
+      return (*this);
+    }
 
-  size_t algorithmNumber;            ///< Unique algorithm identifier
-  size_t eventNumber;                ///< Unique event identifier
-  WhiteBoard& eventStore;            ///< Per-event data store
-  Acts::GeometryContext geoContext;  ///< Per-event geometry context
-  Acts::MagneticFieldContext
-      magFieldContext;                    ///< Per-event magnetic Field context
-  Acts::CalibrationContext calibContext;  ///< Per-event calbiration context
-};
+    size_t                     algorithmNumber;  ///< Unique algorithm identifier
+    size_t                     eventNumber;      ///< Unique event identifier
+    WhiteBoard&                eventStore;       ///< Per-event data store
+    Acts::GeometryContext      geoContext;       ///< Per-event geometry context
+    Acts::MagneticFieldContext magFieldContext;  ///< Per-event magnetic Field context
+    Acts::CalibrationContext   calibContext;     ///< Per-event calbiration context
+  };
 
 }  // namespace ActsExamples

@@ -14,19 +14,18 @@
 
 namespace ActsExamples {
 
-class Sequencer;
+  class Sequencer;
 
-namespace Options {
+  namespace Options {
 
-/// Add magnetic field options with a `bf-` prefix.
-void addMagneticFieldOptions(Description& desc);
+    /// Add magnetic field options with a `bf-` prefix.
+    void addMagneticFieldOptions(Description& desc);
 
-/// Setup any additional services required for the magnetic field.
-void setupMagneticFieldServices(const Variables& vars, Sequencer& seq);
+    /// Setup any additional services required for the magnetic field.
+    void setupMagneticFieldServices(const Variables& vars, Sequencer& seq);
 
-/// Read and create the magnetic field from the given user variables.
-std::shared_ptr<Acts::MagneticFieldProvider> readMagneticField(
-    const Variables& vars);
+    /// Read and create the magnetic field from the given user variables.
+    std::shared_ptr<Acts::MagneticFieldProvider> readMagneticField(const Variables& vars);
 
-}  // namespace Options
+  }  // namespace Options
 }  // namespace ActsExamples

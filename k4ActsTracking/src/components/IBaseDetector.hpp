@@ -16,31 +16,29 @@
 #include <vector>
 
 namespace Acts {
-class TrackingGeometry;
-class IMaterialDecorator;
+  class TrackingGeometry;
+  class IMaterialDecorator;
 }  // namespace Acts
 
 namespace ActsExamples {
-class IContextDecorator;
-namespace Contextual {
-class AlignedDetectorElement;
-class AlignmentDecorator;
-}  // namespace Contextual
+  class IContextDecorator;
+  namespace Contextual {
+    class AlignedDetectorElement;
+    class AlignmentDecorator;
+  }  // namespace Contextual
 }  // namespace ActsExamples
 
 namespace ActsExamples {
-class IBaseDetector {
- public:
-  using ContextDecorators =
-      std::vector<std::shared_ptr<ActsExamples::IContextDecorator>>;
-  using TrackingGeometryPtr = std::shared_ptr<const Acts::TrackingGeometry>;
+  class IBaseDetector {
+  public:
+    using ContextDecorators   = std::vector<std::shared_ptr<ActsExamples::IContextDecorator>>;
+    using TrackingGeometryPtr = std::shared_ptr<const Acts::TrackingGeometry>;
 
-  virtual ~IBaseDetector() = default;
-  virtual void addOptions(
-      boost::program_options::options_description& opt) const = 0;
+    virtual ~IBaseDetector()                                                        = default;
+    virtual void addOptions(boost::program_options::options_description& opt) const = 0;
 
-  virtual std::pair<TrackingGeometryPtr, ContextDecorators> finalize(
-      const boost::program_options::variables_map& vm,
-      std::shared_ptr<const Acts::IMaterialDecorator> mdecorator) = 0;
-};
+    virtual std::pair<TrackingGeometryPtr, ContextDecorators> finalize(
+        const boost::program_options::variables_map&    vm,
+        std::shared_ptr<const Acts::IMaterialDecorator> mdecorator) = 0;
+  };
 }  // namespace ActsExamples
