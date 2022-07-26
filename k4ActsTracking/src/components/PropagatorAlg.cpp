@@ -4,8 +4,12 @@
 #include <boost/program_options.hpp>
 #include "GaudiKernel/Service.h"
 #include "TGeoManager.h"
+#include "PropagatorInterface.hpp"
+#include "PropagationOptions.hpp"
 
-//DECLARE_COMPONENT(PropagatorAlg)
+
+
+DECLARE_COMPONENT(PropagatorAlg)
 
 using namespace Acts;
 
@@ -40,6 +44,15 @@ PropagatorAlg::~PropagatorAlg() {}
 //StatusCode PropagatorAlg::initialize(ActsExamples::AlgorithmContext& context) {
 StatusCode PropagatorAlg::initialize() {
   //  m_log << MSG::INFO << "this is propagator service"<< endmsg;
+
+  m_geoSvc = service("GeoSvc");
+
+
+  if (!m_geoSvc) {
+  std::cout << "Unable to locate Geometry Service. " << std::endl;
+  return StatusCode::FAILURE;
+}
+
 
   std::mt19937                     rng{1};
   std::normal_distribution<double> gauss(0., 1.);
@@ -88,26 +101,13 @@ StatusCode PropagatorAlg::initialize() {
     auto cov = generateCovariance(rng, gauss);
 
     // Setup and parse propagationSteps
-
-    auto desc = ActsExamples::Options::makeDefaultOptions();
-    ActsExamples::Options::addSequencerOptions(desc);
-    ActsExamples::Options::addGeometryOptions(desc);
-    ActsExamples::Options::addMaterialOptions(desc);
-    ActsExamples::Options::addMagneticFieldOptions(desc);
-    ActsExamples::Options::addRandomNumbersOptions(desc);
-    //ActsExamples::Options::addPropagationOptions(desc);
-    ActsExamples::Options::addOutputOptions(desc, ActsExamples::OutputFormat::Root | ActsExamples::OutputFormat::Obj);
-
     ActsExamples::IBaseDetector*          detector;
-    boost::program_options::variables_map vm;
-    auto                                  geometry          = ActsExamples::Geometry::build(vm, *detector);
-    auto                                  tGeometry         = geometry.first;
-    auto                                  contextDecorators = geometry.second;
 
-    auto bField = ActsExamples::Options::readMagneticField(vm);
+    auto tGeometry = m_geoSvc->trackingGeometry();
 
-    bool rootOutput = vm["output-root"].template as<bool>();
-    bool objOutput  = vm["output-obj"].template as<bool>();
+    auto bField = std::make_shared<ConstantBField>(Vector3(0.,0.,2 * Acts::UnitConstants::T));
+    Acts::BoundTrackParameters startParameters(surface, std::move(pars),
+                                                 std::move(cov));
 
     auto stepper     = Acts::EigenStepper<>{std::move(bField)};
     using Stepper    = std::decay_t<decltype(stepper)>;
@@ -116,23 +116,68 @@ StatusCode PropagatorAlg::initialize() {
     Acts::Navigator         navigator(navCfg);
     Propagator              propagator(std::move(stepper), std::move(navigator));
 
-    auto randomNumberSvc = rng;
-    // // Read the propagation config and create the algorithms
-    auto pAlgConfig            = readPropagationConfig(vm);
-    pAlgConfig.randomNumberSvc = randomNumberSvc;
-    pAlgConfig.sterileLogger   = not rootOutput and not objOutput;
 
-    // pAlgConfig.propagatorImpl =
-    //     std::make_shared<PropagatorInterface::ConcretePropagator<Propagator>>(
-    //         std::move(propagator));
-    //
-    //     sequencer.addAlgorithm(std::make_shared<ActsExamples::PropagationAlgorithm>(
-    //         pAlgConfig, logLevel));
+    PropagationOutput pOutput;
+    ACTS_LOCAL_LOGGER(Acts::getDefaultLogger("Propagation Logger", Acts::Logging::INFO));
+
+
+    using MaterialInteractor = Acts::MaterialInteractor;
+    using SteppingLogger = Acts::detail::SteppingLogger;
+    using EndOfWorld = Acts::EndOfWorldReached;
+
+    using ActionList = Acts::ActionList<SteppingLogger, MaterialInteractor>;
+    using AbortList = Acts::AbortList<EndOfWorld>;
+    using PropagatorOptions = Acts::DenseStepperPropagatorOptions<ActionList, AbortList>;
+
+    const Acts::GeometryContext geoContext;
+    const Acts::MagneticFieldContext magFieldContext;
+
+    PropagatorOptions options(geoContext, magFieldContext, Acts::LoggerWrapper{logger()});
+
+    options.pathLimit = std::numeric_limits<double>::max();
+
+    options.loopProtection = (startParameters.transverseMomentum() < m_cfg.ptLoopers);
+
+                        // Switch the material interaction on/off & eventually into logging mode
+    auto& mInteractor = options.actionList.get<MaterialInteractor>();
+    mInteractor.multipleScattering = m_cfg.multipleScattering;
+    mInteractor.energyLoss = m_cfg.energyLoss;
+    mInteractor.recordInteractions = m_cfg.recordMaterialInteractions;
+
+                        // Switch the logger to sterile, e.g. for timing checks
+    auto& sLogger = options.actionList.get<SteppingLogger>();
+    sLogger.sterile = m_cfg.sterileLogger;
+                        // Set a maximum step size
+    options.maxStepSize = m_cfg.maxStepSize;
+  std::cout << "!!!!!!!!!!! After setting options PropagatorAlg" << std::endl;
+    auto result = propagator.propagate(startParameters, options);
+    if (result.ok()) {
+  const auto& resultValue = result.value();
+  auto steppingResults =
+      resultValue.template get<SteppingLogger::result_type>();
+
+  // Set the stepping result
+  pOutput.first = std::move(steppingResults.steps);
+  // Also set the material recording result - if configured
+  if (m_cfg.recordMaterialInteractions) {
+    auto materialResult =
+        resultValue.template get<MaterialInteractor::result_type>();
+    pOutput.second = std::move(materialResult);
+  }
+
+}
+
+
+   //pOutput return function
+
   }
 
   return StatusCode::SUCCESS;
 }
 
-StatusCode PropagatorAlg::execute() { return StatusCode::SUCCESS; }
+StatusCode PropagatorAlg::execute() {
+return StatusCode::SUCCESS;
+
+}
 
 StatusCode PropagatorAlg::finalize() { return StatusCode::SUCCESS; }

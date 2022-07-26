@@ -8,7 +8,7 @@ from Configurables import GeoSvc
 
 algList = []
 
-b = PropagatorAlg("MyPropagatorAlg")
+b = PropagatorAlg("PropagatorAlg")
 algList.append(b)
 
 
