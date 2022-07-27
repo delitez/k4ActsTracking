@@ -14,7 +14,6 @@
 #include "IGeoSvc.h"
 #include "IPropagatorAlg.h"
 
-
 #include "Acts/Utilities/Logger.hpp"
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Definitions/Units.hpp"
@@ -33,11 +32,7 @@
 #include "Acts/Utilities/Helpers.hpp"
 #include "Acts/MagneticField/ConstantBField.hpp"
 
-
-
-//#include "ActsExamples/Framework/BareAlgorithm.hpp"
 #include "ProcessCode.hpp"
-//#include "ActsExamples/Framework/RandomNumbers.hpp"
 #include "AlgorithmContext.hpp"
 #include "CommonGeometry.hpp"
 #include "CommonOptions.hpp"
@@ -45,8 +40,6 @@
 #include "MagneticFieldOptions.hpp"
 
 #include "WhiteBoard.hpp"
-
-//#include "PropagationOptions.hpp"
 
 #include <cmath>
 #include <limits>
@@ -57,7 +50,6 @@
 #include "GaudiKernel/MsgStream.h"
 #include "GaudiKernel/Service.h"
 #include "GaudiKernel/ServiceHandle.h"
-//#include "IPropagatorAlg.h"
 #include "Acts/Definitions/Units.hpp"
 #include "Acts/Utilities/Logger.hpp"
 #include "CommonOptions.hpp"
@@ -85,53 +77,18 @@ public:
     /// how to set it up
     std::mt19937 randomNumberSvc{0};
 
-    /// proapgation mode
-    int mode = 0;
-    /// Switch the logger to sterile
-    bool sterileLogger = false;
-    /// debug output
-    bool debugOutput = false;
-    /// Modify the behavior of the material interaction: energy loss
-    bool energyLoss = true;
-    /// Modify the behavior of the material interaction: scattering
-    bool multipleScattering = true;
-    /// Modify the behavior of the material interaction: record
-    bool recordMaterialInteractions = true;
-
-    /// number of particles
-    size_t ntests = 100;
-    /// d0 gaussian sigma
-    double d0Sigma = 15 * Acts::UnitConstants::um;
-    /// z0 gaussian sigma
-    double z0Sigma = 55 * Acts::UnitConstants::mm;
-    /// phi gaussian sigma (used for covariance transport)
-    double phiSigma = 0.001;
-    /// theta gaussian sigma (used for covariance transport)
-    double thetaSigma = 0.001;
-    /// qp gaussian sigma (used for covariance transport)
-    double qpSigma = 0.0001 / 1 * Acts::UnitConstants::GeV;
-    /// t gaussian sigma (used for covariance transport)
-    double tSigma = 1 * Acts::UnitConstants::ns;
     /// phi range
     std::pair<double, double> phiRange = {-M_PI, M_PI};
     /// eta range
     std::pair<double, double> etaRange = {-4., 4.};
     /// pt range
     std::pair<double, double> ptRange = {100 * Acts::UnitConstants::MeV, 100 * Acts::UnitConstants::GeV};
-    /// looper protection
-    double ptLoopers = 500 * Acts::UnitConstants::MeV;
-
-    /// Max step size steering
-    double maxStepSize = 3 * Acts::UnitConstants::m;
 
     /// The step collection to be stored
     std::string propagationStepCollection = "PropagationSteps";
 
     /// The material collection to be stored
     std::string propagationMaterialCollection = "RecordedMaterialTracks";
-
-    /// covariance transport
-    bool covarianceTransport = false;
 
     /// The covariance values
     Acts::BoundVector covariances = Acts::BoundVector::Zero();
@@ -144,17 +101,46 @@ public:
 
 private:
   Config m_cfg;
+
   Config readPropagationConfig(const boost::program_options::variables_map& vm);
 
+  Gaudi::Property<int> mode{this, "_mode", 0, "Option for proapgation mode."};
 
-  //MsgStream m_log;
+  Gaudi::Property<bool> sterileLogger{this, "_sterileLogger", false, "Option to switch the logger to sterile."};
+
+  Gaudi::Property<bool> debugOutput{this, "_debugOutput", false, "Option for the debug output."};
+
+  Gaudi::Property<bool> energyLoss{this, "_energyLoss", true, "Option to modify the behavior of the material interaction: energy loss."};
+
+  Gaudi::Property<bool> multipleScattering{this, "_multipleScattering", true, "Option to modify the behavior of the material interaction: scattering"};
+
+  Gaudi::Property<bool> recordMaterialInteractions{this, "_recordMaterialInteractions", true, "Option to modify the behavior of the material interaction: record"};
+
+  Gaudi::Property<int> ntests{this, "_ntests", 0, "Option for number of particles"};
+
+  Gaudi::Property<bool> covarianceTransport{this, "_covarianceTransport", false, "Option for covariance transport."};
+
+  Gaudi::Property<double> d0Sigma{this, "_d0Sigma", 0, "Option for d0 gaussian sigma"};
+
+  Gaudi::Property<double> z0Sigma{this, "_z0Sigma", 0, "Option for z0 gaussian sigma"};
+
+  Gaudi::Property<double> phiSigma{this, "_phiSigma", 0, "Option for phi gaussian sigma (used for covariance transport)"};
+
+  Gaudi::Property<double> thetaSigma{this, "_thetaSigma", 0, "Option for theta gaussian sigma (used for covariance transport)"};
+
+  Gaudi::Property<double> qpSigma{this, "_qpSigma", 0, "Option for qp gaussian sigma (used for covariance transport)"};
+
+  Gaudi::Property<double> tSigma{this, "_tSigma", 0, "Option for t gaussian sigma (used for covariance transport)"};
+
+  Gaudi::Property<double> ptLoopers{this, "_ptLoopers", 0, "Option for looper protection"};
+
+  Gaudi::Property<double> maxStepSize{this, "_maxStepSize", 0, "Option for Max step size steering"};
 
   std::random_device                  rd{};
   std::mt19937                        rng{rd()};
   std::optional<Acts::BoundSymMatrix> generateCovariance(std::mt19937& rng, std::normal_distribution<double>& gauss);
 
 public:
-  //void write(std::ostream& os) const final;
 
   SmartIF<IGeoSvc> m_geoSvc;
 

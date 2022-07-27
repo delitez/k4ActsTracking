@@ -4,8 +4,8 @@
 #include <boost/program_options.hpp>
 #include "GaudiKernel/Service.h"
 #include "TGeoManager.h"
-#include "PropagatorInterface.hpp"
-#include "PropagationOptions.hpp"
+//#include "PropagatorInterface.hpp"
+//#include "PropagationOptions.hpp"
 
 
 
@@ -15,7 +15,7 @@ using namespace Acts;
 
 std::optional<Acts::BoundSymMatrix> PropagatorAlg::generateCovariance(std::mt19937&                     rng,
                                                                       std::normal_distribution<double>& gauss) {
-  if (m_cfg.covarianceTransport) {
+  if (covarianceTransport) {
     // We start from the correlation matrix
     Acts::BoundSymMatrix newCov(m_cfg.correlations);
     // Then we draw errors according to the error values
@@ -51,6 +51,7 @@ StatusCode PropagatorAlg::initialize() {
   if (!m_geoSvc) {
   std::cout << "Unable to locate Geometry Service. " << std::endl;
   return StatusCode::FAILURE;
+
 }
 
 
@@ -68,18 +69,18 @@ StatusCode PropagatorAlg::initialize() {
       Acts::Surface::makeShared<Acts::PerigeeSurface>(Acts::Vector3(0., 0., 0.));
 
   std::vector<std::vector<Acts::detail::Step>> propagationSteps;
-  propagationSteps.reserve(m_cfg.ntests);
+  propagationSteps.reserve(ntests);
 
   std::vector<RecordedMaterialTrack> recordedMaterial;
-  if (m_cfg.recordMaterialInteractions) {
-    recordedMaterial.reserve(m_cfg.ntests);
+  if (recordMaterialInteractions) {
+    recordedMaterial.reserve(ntests);
   }
 
   // loop over number of particles
-  for (size_t it = 0; it < m_cfg.ntests; ++it) {
+  for (size_t it = 0; it < ntests; ++it) {
     /// get the d0 and z0
-    double d0     = m_cfg.d0Sigma * gauss(rng);
-    double z0     = m_cfg.z0Sigma * gauss(rng);
+    double d0     = d0Sigma * gauss(rng);
+    double z0     = z0Sigma * gauss(rng);
     double phi    = phiDist(rng);
     double eta    = etaDist(rng);
     double theta  = 2 * atan(exp(-eta));
@@ -87,7 +88,7 @@ StatusCode PropagatorAlg::initialize() {
     double p      = pt / sin(theta);
     double charge = qDist(rng) > 0.5 ? 1. : -1.;
     double qop    = charge / p;
-    double t      = m_cfg.tSigma * gauss(rng);
+    double t      = tSigma * gauss(rng);
 
     // parameters
     Acts::BoundVector pars;
@@ -116,6 +117,7 @@ StatusCode PropagatorAlg::initialize() {
     Acts::Navigator         navigator(navCfg);
     Propagator              propagator(std::move(stepper), std::move(navigator));
 
+if ( mode == 0 ) {
 
     PropagationOutput pOutput;
     ACTS_LOCAL_LOGGER(Acts::getDefaultLogger("Propagation Logger", Acts::Logging::INFO));
@@ -136,20 +138,20 @@ StatusCode PropagatorAlg::initialize() {
 
     options.pathLimit = std::numeric_limits<double>::max();
 
-    options.loopProtection = (startParameters.transverseMomentum() < m_cfg.ptLoopers);
+    options.loopProtection = (startParameters.transverseMomentum() < ptLoopers);
 
                         // Switch the material interaction on/off & eventually into logging mode
     auto& mInteractor = options.actionList.get<MaterialInteractor>();
-    mInteractor.multipleScattering = m_cfg.multipleScattering;
-    mInteractor.energyLoss = m_cfg.energyLoss;
-    mInteractor.recordInteractions = m_cfg.recordMaterialInteractions;
+    mInteractor.multipleScattering = multipleScattering;
+    mInteractor.energyLoss = energyLoss;
+    mInteractor.recordInteractions = recordMaterialInteractions;
 
                         // Switch the logger to sterile, e.g. for timing checks
     auto& sLogger = options.actionList.get<SteppingLogger>();
-    sLogger.sterile = m_cfg.sterileLogger;
+    sLogger.sterile = sterileLogger;
                         // Set a maximum step size
-    options.maxStepSize = m_cfg.maxStepSize;
-  std::cout << "!!!!!!!!!!! After setting options PropagatorAlg" << std::endl;
+    options.maxStepSize = maxStepSize;
+
     auto result = propagator.propagate(startParameters, options);
     if (result.ok()) {
   const auto& resultValue = result.value();
@@ -159,7 +161,7 @@ StatusCode PropagatorAlg::initialize() {
   // Set the stepping result
   pOutput.first = std::move(steppingResults.steps);
   // Also set the material recording result - if configured
-  if (m_cfg.recordMaterialInteractions) {
+  if (recordMaterialInteractions) {
     auto materialResult =
         resultValue.template get<MaterialInteractor::result_type>();
     pOutput.second = std::move(materialResult);
@@ -171,6 +173,8 @@ StatusCode PropagatorAlg::initialize() {
    //pOutput return function
 
   }
+
+}
 
   return StatusCode::SUCCESS;
 }
