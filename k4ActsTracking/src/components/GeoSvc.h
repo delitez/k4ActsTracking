@@ -38,7 +38,7 @@ private:
   Acts::GeometryContext m_trackingGeoCtx;
 
   /// ACTS Tracking Geometry
-//  std::unique_ptr<const Acts::TrackingGeometry> m_trackingGeo{nullptr};
+  //  std::unique_ptr<const Acts::TrackingGeometry> m_trackingGeo{nullptr};
   std::shared_ptr<const Acts::TrackingGeometry> m_trackingGeo{nullptr};
 
   /// ACTS Material Decorator
@@ -73,9 +73,9 @@ public:
 
   StatusCode createGeoObj();
 
-//  virtual const Acts::TrackingGeometry& trackingGeometry() const;
-// virtual std::shared_ptr<const Acts::TrackingGeometry> m_trackingGeo{nullptr};
- virtual std::shared_ptr<const Acts::TrackingGeometry> trackingGeometry() const;
+  //  virtual const Acts::TrackingGeometry& trackingGeometry() const;
+  // virtual std::shared_ptr<const Acts::TrackingGeometry> m_trackingGeo{nullptr};
+  virtual std::shared_ptr<const Acts::TrackingGeometry> trackingGeometry() const;
 };
 
 //inline const Acts::TrackingGeometry& GeoSvc::trackingGeometry() const { return *m_trackingGeo; }
