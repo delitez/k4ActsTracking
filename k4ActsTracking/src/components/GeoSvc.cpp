@@ -97,8 +97,6 @@ StatusCode GeoSvc::buildDD4HepGeo() {
 
 /// Create a geometry OBJ file
 StatusCode GeoSvc::createGeoObj() {
-
-
   Acts::ObjVisualization3D m_obj;
 
   if (!m_trackingGeo) {
