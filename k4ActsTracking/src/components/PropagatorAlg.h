@@ -57,11 +57,15 @@
 #include "GaudiAlg/GaudiAlgorithm.h"
 #include "Options.hpp"
 
+#include "GaudiKernel/ITHistSvc.h"
+
+#include "TH1F.h"
+#include "TGraph.h"
+
 #include <iostream>
 
 #include <boost/program_options.hpp>
 
-class PropagatorInterface;
 
 using RecordedMaterial      = Acts::MaterialInteractor::result_type;
 using RecordedMaterialTrack = std::pair<std::pair<Acts::Vector3, Acts::Vector3>, RecordedMaterial>;
@@ -71,8 +75,6 @@ std::optional<Acts::BoundSymMatrix> generateCovariance(std::mt19937& rng, std::n
 class PropagatorAlg : public GaudiAlgorithm {
 public:
   struct Config {
-    /// Instance of a propagator wrapper that performs the actual propagation
-    std::shared_ptr<PropagatorInterface> propagatorImpl = nullptr;
 
     /// how to set it up
     std::mt19937 randomNumberSvc{0};
@@ -97,48 +99,125 @@ public:
     Acts::BoundSymMatrix correlations = Acts::BoundSymMatrix::Identity();
   };
 
+
   const Config& config() const { return m_cfg; }
 
 private:
-  Config m_cfg;
 
-  Config readPropagationConfig(const boost::program_options::variables_map& vm);
+Config m_cfg;
+std::vector<PropagationOutput> testvec;
+std::mt19937                        rng;
+std::optional<Acts::BoundSymMatrix> generateCovariance(std::mt19937& rng, std::normal_distribution<double>& gauss);
 
-  Gaudi::Property<int> mode{this, "_mode", 0, "Option for proapgation mode."};
+ITHistSvc* m_ths{nullptr};
+TTree* m_outputTree{nullptr};
 
-  Gaudi::Property<bool> sterileLogger{this, "_sterileLogger", false, "Option to switch the logger to sterile."};
+  std::vector<float> testVar;
+  std::vector<float> m_x;          ///< global x
+  std::vector<float> m_y;          ///< global y
+  std::vector<float> m_z;          ///< global z
+  std::vector<float> m_dx;         ///< global direction x
+  std::vector<float> m_dy;         ///< global direction y
+  std::vector<float> m_dz;         ///< global direction z
 
-  Gaudi::Property<bool> debugOutput{this, "_debugOutput", false, "Option for the debug output."};
+  std::vector<int> m_volumeID;     ///< volume identifier
+  std::vector<int> m_boundaryID;   ///< boundary identifier
+  std::vector<int> m_layerID;      ///< layer identifier if
+  std::vector<int> m_approachID;   ///< surface identifier
+  std::vector<int> m_sensitiveID;  ///< surface identifier
 
-  Gaudi::Property<bool> energyLoss{this, "_energyLoss", true, "Option to modify the behavior of the material interaction: energy loss."};
+Config readPropagationConfig (const boost::program_options::variables_map& vm);
 
-  Gaudi::Property<bool> multipleScattering{this, "_multipleScattering", true, "Option to modify the behavior of the material interaction: scattering"};
+Gaudi::Property<int> mode{this, "mode", 0, "Option for propagation mode."};
 
-  Gaudi::Property<bool> recordMaterialInteractions{this, "_recordMaterialInteractions", true, "Option to modify the behavior of the material interaction: record"};
+Gaudi::Property<bool> sterileLogger{this, "sterileLogger", false, "Option to switch the logger to sterile."};
 
-  Gaudi::Property<int> ntests{this, "_ntests", 0, "Option for number of particles"};
+Gaudi::Property<bool> debugOutput{this, "debugOutput", false, "Option for the debug output."};
 
-  Gaudi::Property<bool> covarianceTransport{this, "_covarianceTransport", false, "Option for covariance transport."};
+Gaudi::Property<bool> energyLoss{this, "energyLoss", true, "Option to modify the behavior of the material interaction: energy loss."};
 
-  Gaudi::Property<double> d0Sigma{this, "_d0Sigma", 0, "Option for d0 gaussian sigma"};
+Gaudi::Property<bool> multipleScattering{this, "multipleScattering", true, "Option to modify the behavior of the material interaction: scattering"};
 
-  Gaudi::Property<double> z0Sigma{this, "_z0Sigma", 0, "Option for z0 gaussian sigma"};
+Gaudi::Property<bool> recordMaterialInteractions{this, "recordMaterialInteractions", true, "Option to modify the behavior of the material interaction: record"};
 
-  Gaudi::Property<double> phiSigma{this, "_phiSigma", 0, "Option for phi gaussian sigma (used for covariance transport)"};
+Gaudi::Property<int> ntests{this, "ntests", 0, "Option for number of particles"};
 
-  Gaudi::Property<double> thetaSigma{this, "_thetaSigma", 0, "Option for theta gaussian sigma (used for covariance transport)"};
+Gaudi::Property<bool> covarianceTransport{this, "covarianceTransport", false, "Option for covariance transport."};
 
-  Gaudi::Property<double> qpSigma{this, "_qpSigma", 0, "Option for qp gaussian sigma (used for covariance transport)"};
+Gaudi::Property<double> d0Sigma{this, "d0Sigma", 0, "Option for d0 gaussian sigma"};
 
-  Gaudi::Property<double> tSigma{this, "_tSigma", 0, "Option for t gaussian sigma (used for covariance transport)"};
+Gaudi::Property<double> z0Sigma{this, "z0Sigma", 0, "Option for z0 gaussian sigma"};
 
-  Gaudi::Property<double> ptLoopers{this, "_ptLoopers", 0, "Option for looper protection"};
+Gaudi::Property<double> phiSigma{this, "phiSigma", 0, "Option for phi gaussian sigma (used for covariance transport)"};
 
-  Gaudi::Property<double> maxStepSize{this, "_maxStepSize", 0, "Option for Max step size steering"};
+Gaudi::Property<double> thetaSigma{this, "thetaSigma", 0, "Option for theta gaussian sigma (used for covariance transport)"};
 
-  std::random_device                  rd{};
-  std::mt19937                        rng{rd()};
-  std::optional<Acts::BoundSymMatrix> generateCovariance(std::mt19937& rng, std::normal_distribution<double>& gauss);
+Gaudi::Property<double> qpSigma{this, "qpSigma", 0, "Option for qp gaussian sigma (used for covariance transport)"};
+
+Gaudi::Property<double> tSigma{this, "tSigma", 0, "Option for t gaussian sigma (used for covariance transport)"};
+
+Gaudi::Property<double> ptLoopers{this, "ptLoopers", 0, "Option for looper protection"};
+
+Gaudi::Property<double> maxStepSize{this, "maxStepSize", 0, "Option for Max step size steering"};
+
+Gaudi::Property<int> sensitiveIDopt{this, "sensitiveIDopt", 0, "Option for sensitiveID"};
+
+
+template <typename parameters_t>
+PropagationOutput executeTest(Acts::Propagator<Acts::EigenStepper<>, Acts::Navigator>& propagator, parameters_t& startParameters) {
+     PropagationOutput pOutput;
+     ACTS_LOCAL_LOGGER(Acts::getDefaultLogger("Propagation Logger", Acts::Logging::INFO));
+
+ if ( mode == 0 ) {
+     using MaterialInteractor = Acts::MaterialInteractor;
+     using SteppingLogger = Acts::detail::SteppingLogger;
+     using EndOfWorld = Acts::EndOfWorldReached;
+
+     using ActionList = Acts::ActionList<SteppingLogger, MaterialInteractor>;
+     using AbortList = Acts::AbortList<EndOfWorld>;
+     using PropagatorOptions = Acts::DenseStepperPropagatorOptions<ActionList, AbortList>;
+
+     const Acts::GeometryContext geoContext;
+     const Acts::MagneticFieldContext magFieldContext;
+
+     PropagatorOptions options(geoContext, magFieldContext, Acts::LoggerWrapper{logger()});
+
+     options.pathLimit = std::numeric_limits<double>::max();
+
+     options.loopProtection = (startParameters.transverseMomentum() < ptLoopers);
+
+
+     auto& mInteractor = options.actionList.get<MaterialInteractor>();
+     mInteractor.multipleScattering = multipleScattering;
+     mInteractor.energyLoss = energyLoss;
+     mInteractor.recordInteractions = recordMaterialInteractions;
+
+
+     auto& sLogger = options.actionList.get<SteppingLogger>();
+     sLogger.sterile = sterileLogger;
+
+     options.maxStepSize = maxStepSize;
+
+     auto result = propagator.propagate(startParameters, options);
+     if (result.ok()) {
+   const auto& resultValue = result.value();
+   auto steppingResults =
+       resultValue.template get<SteppingLogger::result_type>();
+
+
+   pOutput.first = std::move(steppingResults.steps);
+
+   if (recordMaterialInteractions) {
+     auto materialResult =
+         resultValue.template get<MaterialInteractor::result_type>();
+     pOutput.second = std::move(materialResult);
+       }
+
+     }
+    return pOutput;
+
+  }
+}
 
 public:
 
@@ -154,7 +233,13 @@ public:
 
   virtual StatusCode finalize() final;
 
-};
+virtual StatusCode initializeTrees() final;
 
+virtual StatusCode cleanTrees() final;
+
+
+
+
+};  // class
 
 #endif

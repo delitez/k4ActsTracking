@@ -4,26 +4,28 @@
 #include <boost/program_options.hpp>
 #include "GaudiKernel/Service.h"
 #include "TGeoManager.h"
-//#include "PropagatorInterface.hpp"
-//#include "PropagationOptions.hpp"
-
+#include "TTree.h"
 
 
 DECLARE_COMPONENT(PropagatorAlg)
 
+
+
 using namespace Acts;
+
+
 
 std::optional<Acts::BoundSymMatrix> PropagatorAlg::generateCovariance(std::mt19937&                     rng,
                                                                       std::normal_distribution<double>& gauss) {
   if (covarianceTransport) {
-    // We start from the correlation matrix
+
     Acts::BoundSymMatrix newCov(m_cfg.correlations);
-    // Then we draw errors according to the error values
+
     Acts::BoundVector covs_smeared = m_cfg.covariances;
     for (size_t k = 0; k < size_t(covs_smeared.size()); ++k) {
       covs_smeared[k] *= gauss(rng);
     }
-    // and apply a double loop
+
     for (size_t i = 0; i < size_t(newCov.rows()); ++i) {
       for (size_t j = 0; j < size_t(newCov.cols()); ++j) {
         (newCov)(i, j) *= covs_smeared[i];
@@ -41,9 +43,7 @@ PropagatorAlg::PropagatorAlg(const std::string& aName, ISvcLocator* aSvcLoc) : G
 
 PropagatorAlg::~PropagatorAlg() {}
 
-//StatusCode PropagatorAlg::initialize(ActsExamples::AlgorithmContext& context) {
 StatusCode PropagatorAlg::initialize() {
-  //  m_log << MSG::INFO << "this is propagator service"<< endmsg;
 
   m_geoSvc = service("GeoSvc");
 
@@ -54,15 +54,35 @@ StatusCode PropagatorAlg::initialize() {
 
 }
 
+if (service("THistSvc", m_ths).isFailure()) {
+    error() << "Couldn't get THistSvc" << endmsg;
+    return StatusCode::FAILURE;
+  }
 
+m_outputTree = new TTree ("hits", "PropagatorAlg hits ntuple");
+if (m_ths->regTree("/rec/NtuplesHits", m_outputTree).isFailure()) {
+    error() << "Couldn't register hits tree" << endmsg;
+  }
+initializeTrees();
+
+
+return StatusCode::SUCCESS;
+
+}
+
+
+
+
+StatusCode PropagatorAlg::execute() {
+
+  cleanTrees();
   std::mt19937                     rng{1};
   std::normal_distribution<double> gauss(0., 1.);
   std::round(gauss(rng));
 
-  // Setup random number distributions for some quantities
-  std::uniform_real_distribution<double> phiDist(3., 5.);    // m_cfg.phiRange.first, m_cfg.phiRange.second
-  std::uniform_real_distribution<double> etaDist(1.0, 2.0);  //m_cfg.etaRange.first,m_cfg.etaRange.second
-  std::uniform_real_distribution<double> ptDist(10., 20.);   // m_cfg.ptRange.first,m_cfg.ptRange.second
+  std::uniform_real_distribution<double> phiDist(0 , 2*M_PI);
+  std::uniform_real_distribution<double> etaDist(-4.0, 4.0);
+  std::uniform_real_distribution<double> ptDist(10., 20.);
   std::uniform_real_distribution<double> qDist(0., 1.);
 
   std::shared_ptr<const Acts::PerigeeSurface> surface =
@@ -75,6 +95,10 @@ StatusCode PropagatorAlg::initialize() {
   if (recordMaterialInteractions) {
     recordedMaterial.reserve(ntests);
   }
+for (size_t i = 0; i < 42; i++) {
+testVar.push_back(i);
+}
+
 
   // loop over number of particles
   for (size_t it = 0; it < ntests; ++it) {
@@ -93,16 +117,13 @@ StatusCode PropagatorAlg::initialize() {
     // parameters
     Acts::BoundVector pars;
     pars << d0, z0, phi, theta, qop, t;
-    // some screen output
+
 
     Acts::Vector3 sPosition(0., 0., 0.);
     Acts::Vector3 sMomentum(0., 0., 0.);
 
     // The covariance generation
     auto cov = generateCovariance(rng, gauss);
-
-    // Setup and parse propagationSteps
-    ActsExamples::IBaseDetector*          detector;
 
     auto tGeometry = m_geoSvc->trackingGeometry();
 
@@ -117,71 +138,95 @@ StatusCode PropagatorAlg::initialize() {
     Acts::Navigator         navigator(navCfg);
     Propagator              propagator(std::move(stepper), std::move(navigator));
 
-if ( mode == 0 ) {
 
-    PropagationOutput pOutput;
-    ACTS_LOCAL_LOGGER(Acts::getDefaultLogger("Propagation Logger", Acts::Logging::INFO));
+    PropagationOutput pOut;
+
+    pOut = executeTest(propagator, startParameters);
 
 
-    using MaterialInteractor = Acts::MaterialInteractor;
-    using SteppingLogger = Acts::detail::SteppingLogger;
-    using EndOfWorld = Acts::EndOfWorldReached;
 
-    using ActionList = Acts::ActionList<SteppingLogger, MaterialInteractor>;
-    using AbortList = Acts::AbortList<EndOfWorld>;
-    using PropagatorOptions = Acts::DenseStepperPropagatorOptions<ActionList, AbortList>;
+      for (auto& step : pOut.first) {
 
-    const Acts::GeometryContext geoContext;
-    const Acts::MagneticFieldContext magFieldContext;
+      Acts::GeometryIdentifier::Value volumeID = 0;
+      Acts::GeometryIdentifier::Value boundaryID = 0;
+      Acts::GeometryIdentifier::Value layerID = 0;
+      Acts::GeometryIdentifier::Value approachID = 0;
+      Acts::GeometryIdentifier::Value sensitiveID = 0;
 
-    PropagatorOptions options(geoContext, magFieldContext, Acts::LoggerWrapper{logger()});
+      if (step.surface) {
+        auto geoID = step.surface->geometryId();
+        volumeID = geoID.volume();
+        boundaryID = geoID.boundary();
+        layerID = geoID.layer();
+        approachID = geoID.approach();
+        sensitiveID = geoID.sensitive();
+      }
 
-    options.pathLimit = std::numeric_limits<double>::max();
+      if(sensitiveID >= sensitiveIDopt) {
 
-    options.loopProtection = (startParameters.transverseMomentum() < ptLoopers);
+      // a current volume overwrites the surface tagged one
+      if (step.volume != nullptr) {
+        volumeID = step.volume->geometryId().volume();
+      }
+      // now fill
+      m_sensitiveID.push_back(sensitiveID);
+      m_approachID.push_back(approachID);
+      m_layerID.push_back(layerID);
+      m_boundaryID.push_back(boundaryID);
+      m_volumeID.push_back(volumeID);
 
-                        // Switch the material interaction on/off & eventually into logging mode
-    auto& mInteractor = options.actionList.get<MaterialInteractor>();
-    mInteractor.multipleScattering = multipleScattering;
-    mInteractor.energyLoss = energyLoss;
-    mInteractor.recordInteractions = recordMaterialInteractions;
+        m_x.push_back(step.position.x());
+        m_y.push_back(step.position.y());
+        m_z.push_back(step.position.z());
+        auto direction = step.momentum.normalized();
+        m_dx.push_back(direction.x());
+        m_dy.push_back(direction.y());
+        m_dz.push_back(direction.z());
 
-                        // Switch the logger to sterile, e.g. for timing checks
-    auto& sLogger = options.actionList.get<SteppingLogger>();
-    sLogger.sterile = sterileLogger;
-                        // Set a maximum step size
-    options.maxStepSize = maxStepSize;
+        }
 
-    auto result = propagator.propagate(startParameters, options);
-    if (result.ok()) {
-  const auto& resultValue = result.value();
-  auto steppingResults =
-      resultValue.template get<SteppingLogger::result_type>();
-
-  // Set the stepping result
-  pOutput.first = std::move(steppingResults.steps);
-  // Also set the material recording result - if configured
-  if (recordMaterialInteractions) {
-    auto materialResult =
-        resultValue.template get<MaterialInteractor::result_type>();
-    pOutput.second = std::move(materialResult);
-  }
-
+      }
+m_outputTree->Fill();
 }
 
 
-   //pOutput return function
 
-  }
-
-}
-
-  return StatusCode::SUCCESS;
-}
-
-StatusCode PropagatorAlg::execute() {
 return StatusCode::SUCCESS;
 
 }
 
 StatusCode PropagatorAlg::finalize() { return StatusCode::SUCCESS; }
+
+StatusCode PropagatorAlg::initializeTrees(){
+
+m_outputTree->Branch("testVar", &testVar);
+m_outputTree->Branch("g_x", &m_x);
+m_outputTree->Branch("g_y", &m_y);
+m_outputTree->Branch("g_z", &m_z);
+m_outputTree->Branch("d_x", &m_dx);
+m_outputTree->Branch("d_y", &m_dy);
+m_outputTree->Branch("d_z", &m_dz);
+m_outputTree->Branch("volume_id", &m_volumeID);
+m_outputTree->Branch("boundary_id", &m_boundaryID);
+m_outputTree->Branch("layer_id", &m_layerID);
+m_outputTree->Branch("approach_id", &m_approachID);
+m_outputTree->Branch("sensitive_id", &m_sensitiveID);
+return StatusCode::SUCCESS;
+}
+
+StatusCode PropagatorAlg::cleanTrees() {
+      testVar.clear();
+      m_x.clear();
+      m_y.clear();
+      m_z.clear();
+      m_dx.clear();
+      m_dy.clear();
+      m_dz.clear();
+      m_volumeID.clear();
+    m_boundaryID.clear();
+    m_layerID.clear();
+    m_approachID.clear();
+    m_sensitiveID.clear();
+
+  return StatusCode::SUCCESS;
+}
