@@ -8,7 +8,7 @@
 #include <unordered_map>
 
 class GAUDI_API IPropagatorAlg : virtual public IService {
-public:
+
 public:
   DeclareInterfaceID(IPropagatorAlg, 1, 0);
 

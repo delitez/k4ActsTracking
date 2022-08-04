@@ -97,7 +97,7 @@ StatusCode GeoSvc::buildDD4HepGeo() {
 
 /// Create a geometry OBJ file
 StatusCode GeoSvc::createGeoObj() {
-  // Convert DD4Hep geometry to acts
+
 
   Acts::ObjVisualization3D m_obj;
 
