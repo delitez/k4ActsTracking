@@ -1,5 +1,5 @@
-#ifndef EventGeneratorSvc_H
-#define EventGeneratorSvc_H
+#ifndef ParticleGunAlg_H
+#define ParticleGunAlg_H
 
 
 #include "Acts/Utilities/Helpers.hpp"
@@ -8,6 +8,9 @@
 #include "GaudiKernel/ServiceHandle.h"
 #include "Gaudi/Property.h"
 #include "GaudiAlg/GaudiAlgorithm.h"
+#include "GaudiKernel/DataObjectHandle.h"
+#include "GaudiKernel/AnyDataWrapper.h"
+#include <GaudiKernel/AnyDataHandle.h>
 #include "IEventGeneratorSvc.h"
 #include "Acts/Definitions/Algebra.hpp"
 #include "ActsFatras/EventData/Particle.hpp"
@@ -42,7 +45,7 @@ using SimParticleContainer =
 
 
 
-class EventGeneratorAlg : public GaudiAlgorithm {
+class ParticleGunAlg : public GaudiAlgorithm {
 
 public:
 
@@ -66,6 +69,8 @@ SimParticleContainer genVertexParticles(std::mt19937& rng, std::normal_distribut
 
 private:
 
+AnyDataHandle<SimParticleContainer> m_partvec{"/Event/TestVec3", Gaudi::DataHandle::Writer, this};
+
 
 public:
   Gaudi::Property<double> d0Sigma{this, "d0Sigma", 0, "Option for d0 gaussian sigma"};
@@ -84,9 +89,9 @@ public:
 
   std::shared_ptr<VertexGenerator> vertex = nullptr;
 
-  EventGeneratorAlg(const std::string& name, ISvcLocator* svc);
+  ParticleGunAlg(const std::string& name, ISvcLocator* svc);
 
-  virtual ~EventGeneratorAlg();
+  virtual ~ParticleGunAlg();
 
   virtual StatusCode initialize() final;
 
@@ -96,28 +101,6 @@ public:
 
 
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -1,22 +1,22 @@
-#include "EventGeneratorAlg.h"
+#include "ParticleGunAlg.h"
 #include "GaudiKernel/Service.h"
 
 
 using namespace Gaudi;
 
-DECLARE_COMPONENT(EventGeneratorAlg)
+DECLARE_COMPONENT(ParticleGunAlg)
 
-EventGeneratorAlg::EventGeneratorAlg(const std::string& aName, ISvcLocator* aSvcLoc) : GaudiAlgorithm(aName, aSvcLoc) {}
+ParticleGunAlg::ParticleGunAlg(const std::string& aName, ISvcLocator* aSvcLoc) : GaudiAlgorithm(aName, aSvcLoc) {}
 
-EventGeneratorAlg::~EventGeneratorAlg() { }
+ParticleGunAlg::~ParticleGunAlg() { }
 
-StatusCode EventGeneratorAlg::initialize() {
+StatusCode ParticleGunAlg::initialize() {
 
   return StatusCode::SUCCESS;
 }
-StatusCode EventGeneratorAlg::execute() {
+StatusCode ParticleGunAlg::execute() {
 
-   SimParticleContainer particles;
+   SimParticleContainer particles{};
 
    static int seed = 5;
    std::mt19937 rng{seed++};
@@ -29,60 +29,83 @@ StatusCode EventGeneratorAlg::execute() {
     nPrimaryVertices+=1;
 
 // TODO : Random 4vec does not work. It is set to 0,0,0,0 temporarily.
+// Solution: set stuff per hand as rand gauss
 
 //    auto vertexPosition = (*vertex)(rng);
-Acts::Vector4 vertexPosition(0., 0., 0., 0.);
 
+   std::normal_distribution<double> gauss2(0., 1.);
+Acts::Vector4 vertexPosition(0., 0., 0., 0.);
+ // double vpx = sqrt(gauss2(rng)*gauss2(rng));
+ // double vpy = sqrt(gauss2(rng)*gauss2(rng));
+ // Acts::Vector4 vertexPosition(1., 5., 0., 0.);
+ // std::cout << "vertex position vpx and vpy: " << vpx << " and " << vpy << std::endl;
+ //
+ //
+std::cout << "line 44"<< std::endl;
 
     auto updateParticleInPlace = [&](ActsFatras::Particle& particle) {
 
         const auto pid = ActsFatras::Barcode(particle.particleId())
                                  .setVertexPrimary(nPrimaryVertices);
-
-        const auto pos4 = (vertexPosition + particle.fourPosition()).eval();
-
+    std::cout << "line 50"<< std::endl;
+      const auto pos4 = (vertexPosition + particle.fourPosition()).eval();
+        std::cout << "line 52"<< std::endl;
         particle = particle.withParticleId(pid).setPosition4(pos4);
+        std::cout << "line 54"<< std::endl;
     };
-
-
+    std::cout << "line56" << std::endl;
      auto vertexParticles = genVertexParticles(rng,gauss);
 
     for (auto& vertexParticle : vertexParticles) {
       updateParticleInPlace(vertexParticle);
     }
-
+    std::cout << "line 61"<< std::endl;
     particles.merge(std::move(vertexParticles));
-
+    std::cout << "line 63"<< std::endl;
   }
 
 
-  Container *containedParticle = new Container();
-  containedParticle->m_particles = particles;
+  // Container *containedParticle = new Container();
+  // containedParticle->m_particles = particles;
 
 
 // This registiration must be revised because path is given in the python code and it crashes when it is not changed each time ---- TODO: Find a better way
-// Question: Should particles registered individually or all together  --- if all together, then the EventGeneratorAlg must run only once and it is okay as it is now.
+// Question: Should particles registered individually or all together  --- if all together, then the ParticleGunAlg must run only once and it is okay as it is now.
 // Remark: Same name is okay if no compile, if compile, same name causes a crash
 
-  StatusCode sc = eventSvc()->registerObject(objectPath, containedParticle);
+// find a way that objectPath doesnt have to be changed all the time! --- it must work over many events
 
-  if( sc.isFailure() ) {
-     std::cout << "Object cannot be registered." << std::endl;
-     return StatusCode::FAILURE;
-  }
-  else{
-    std::cout << "Object is registered in " << objectPath << std::endl;
-  }
+  // StatusCode sc = eventSvc()->registerObject(objectPath, containedParticle);
+  //
+  // if( sc.isFailure() ) {
+  //    std::cout << "Object cannot be registered." << std::endl;
+  //    return StatusCode::FAILURE;
+  // }
+  // else{
+  //   std::cout << "Object is registered in " << objectPath << std::endl;
+  // }
+
+    std::cout << "BEFORE PUT WELT!" << std::endl;
+m_partvec.put(std::move(particles));
+  std::cout << "AFTER PUT WELT!" << std::endl;
+
+
+
+
+
+
 
   return StatusCode::SUCCESS;
 }
-StatusCode EventGeneratorAlg::finalize() {
+
+
+StatusCode ParticleGunAlg::finalize() {
 
   return StatusCode::SUCCESS;
 }
 
 
-SimParticleContainer EventGeneratorAlg::genVertexParticles(std::mt19937& rng, std::normal_distribution<double>& gauss) {
+SimParticleContainer ParticleGunAlg::genVertexParticles(std::mt19937& rng, std::normal_distribution<double>& gauss) {
 
   using UniformIndex = std::uniform_int_distribution<unsigned int>;
 
@@ -105,7 +128,7 @@ SimParticleContainer EventGeneratorAlg::genVertexParticles(std::mt19937& rng, st
   const double qChoices[] = {charge,-charge, };
 
   SimParticleContainer particles;
-
+std::cout << "line 130"<< std::endl;
   for (size_t ip = 1 ; ip <= nParticles; ++ip) {
     const auto pid = ActsFatras::Barcode(0u).setParticle(ip);
     const unsigned int type = particleTypeChoice(rng);
@@ -123,17 +146,17 @@ SimParticleContainer EventGeneratorAlg::genVertexParticles(std::mt19937& rng, st
     direction[Acts::eMom2] = cos(theta);
 
     //TODO: Fix the mass -- how to extract it from pdg? config file? by hand?
-
+std::cout << "line 148"<< std::endl;
     double mass = 0.5;
 
     ActsFatras::Particle particle(pid, pdg, q, mass);
     particle.setDirection(direction);
     particle.setAbsoluteMomentum(p);
-
+std::cout << "line 155"<< std::endl;
     particles.insert(particles.end(), std::move(particle));
-
+std::cout << "line 157"<< std::endl;
   }
-
+std::cout << "line 159"<< std::endl;
 return particles;
 
 };
