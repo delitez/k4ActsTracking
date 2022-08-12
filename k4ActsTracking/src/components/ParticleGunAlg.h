@@ -11,7 +11,6 @@
 #include "GaudiKernel/DataObjectHandle.h"
 #include "GaudiKernel/AnyDataWrapper.h"
 #include <GaudiKernel/AnyDataHandle.h>
-#include "IEventGeneratorSvc.h"
 #include "Acts/Definitions/Algebra.hpp"
 #include "ActsFatras/EventData/Particle.hpp"
 #include "ActsFatras/Utilities/ParticleData.hpp"
@@ -52,15 +51,17 @@ public:
 SimParticleContainer genVertexParticles(std::mt19937& rng, std::normal_distribution<double>& gauss);
 
 
+SimParticleContainer particles;
+
   struct MultiplicityGenerator {
     virtual ~MultiplicityGenerator() = default;
     virtual size_t operator()(std::mt19937& rng) const = 0;
   };
 
-  struct VertexGenerator{
-    virtual ~VertexGenerator() = default;
-    virtual Acts::Vector4 operator()(std::mt19937& rng) const = 0;
-  };
+  // struct VertexGenerator{
+  //   virtual ~VertexGenerator() = default;
+  //   virtual Acts::Vector4 operator()(std::mt19937& rng) const = 0;
+  // };
 
   struct Container  : public DataObject {
     SimParticleContainer m_particles;
@@ -69,7 +70,7 @@ SimParticleContainer genVertexParticles(std::mt19937& rng, std::normal_distribut
 
 private:
 
-AnyDataHandle<SimParticleContainer> m_partvec{"/Event/TestVec3", Gaudi::DataHandle::Writer, this};
+AnyDataHandle<SimParticleContainer> m_partvec{"/Event/Test/TestVec4", Gaudi::DataHandle::Writer, this};
 
 
 public:
@@ -87,7 +88,7 @@ public:
 
   Gaudi::Property<std::string> objectPath{this, "objectPath", " ", "Path for the object."};
 
-  std::shared_ptr<VertexGenerator> vertex = nullptr;
+  // std::shared_ptr<VertexGenerator> vertex = nullptr;
 
   ParticleGunAlg(const std::string& name, ISvcLocator* svc);
 

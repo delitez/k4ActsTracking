@@ -61,7 +61,8 @@ StatusCode PropagatorAlg::initialize() {
 
 StatusCode PropagatorAlg::execute() {
   cleanTrees();
-  std::mt19937                     rng{1};
+  static int seed = 5;
+  std::mt19937                     rng{seed++};
   std::normal_distribution<double> gauss(0., 1.);
   std::round(gauss(rng));
 

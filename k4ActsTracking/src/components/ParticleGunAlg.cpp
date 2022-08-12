@@ -16,7 +16,7 @@ StatusCode ParticleGunAlg::initialize() {
 }
 StatusCode ParticleGunAlg::execute() {
 
-   SimParticleContainer particles{};
+
 
    static int seed = 5;
    std::mt19937 rng{seed++};
@@ -32,36 +32,56 @@ StatusCode ParticleGunAlg::execute() {
 // Solution: set stuff per hand as rand gauss
 
 //    auto vertexPosition = (*vertex)(rng);
+     auto vertexPosition = Acts::Vector4(1.,1.,1.,1.);
+     auto vertexParticles = genVertexParticles(rng,gauss);
+std::cout << "After genVertexParticles " << std::endl;
 
-   std::normal_distribution<double> gauss2(0., 1.);
-Acts::Vector4 vertexPosition(0., 0., 0., 0.);
+     auto updateParticleInPlace = [&](ActsFatras::Particle& particle) {
+
+             const auto pid = ActsFatras::Barcode(particle.particleId())
+                                  .setVertexPrimary(nPrimaryVertices);
+std::cout << "After pid " << std::endl;
+std::cout << "summation: "<< vertexPosition + particle.fourPosition()<< std::endl;
+             const auto pos4 = vertexPosition;//(vertexPosition + particle.fourPosition()).eval();
+std::cout << "After pos4 " << std::endl;
+        std::cout << "particle pos before update: " << particle.withParticleId(pid).fourPosition() << " and vertexPosition " << vertexPosition << std::endl;
+        particle.setParticleId(pid);
+        std::cout << "particle id after set: " << particle.withParticleId(pid).fourPosition() << " and vertexPosition " << vertexPosition << std::endl;
+        particle.setPosition4(pos4);
+        std::cout << "particle after update: " << particle.withParticleId(pid).fourPosition() << " and vertexPosition " << vertexPosition << std::endl;
+           };
+
+           std::cout << "After updateParticleInPlace " << std::endl;
+
+
+           for (auto& vertexParticle : vertexParticles) {
+             std::cout << "before uPIP vP " << std::endl;
+             updateParticleInPlace(vertexParticle);
+             std::cout << "after uPIP vP " << std::endl;
+           }
+
+
  // double vpx = sqrt(gauss2(rng)*gauss2(rng));
  // double vpy = sqrt(gauss2(rng)*gauss2(rng));
  // Acts::Vector4 vertexPosition(1., 5., 0., 0.);
  // std::cout << "vertex position vpx and vpy: " << vpx << " and " << vpy << std::endl;
  //
  //
-std::cout << "line 44"<< std::endl;
 
-    auto updateParticleInPlace = [&](ActsFatras::Particle& particle) {
 
-        const auto pid = ActsFatras::Barcode(particle.particleId())
-                                 .setVertexPrimary(nPrimaryVertices);
-    std::cout << "line 50"<< std::endl;
-      const auto pos4 = (vertexPosition + particle.fourPosition()).eval();
-        std::cout << "line 52"<< std::endl;
-        particle = particle.withParticleId(pid).setPosition4(pos4);
-        std::cout << "line 54"<< std::endl;
-    };
+
     std::cout << "line56" << std::endl;
-     auto vertexParticles = genVertexParticles(rng,gauss);
 
-    for (auto& vertexParticle : vertexParticles) {
-      updateParticleInPlace(vertexParticle);
-    }
+
+
+
+
+
     std::cout << "line 61"<< std::endl;
-    particles.merge(std::move(vertexParticles));
+   particles.merge(std::move(vertexParticles));
     std::cout << "line 63"<< std::endl;
+
+
   }
 
 
@@ -85,12 +105,12 @@ std::cout << "line 44"<< std::endl;
   //   std::cout << "Object is registered in " << objectPath << std::endl;
   // }
 
-    std::cout << "BEFORE PUT WELT!" << std::endl;
-m_partvec.put(std::move(particles));
-  std::cout << "AFTER PUT WELT!" << std::endl;
-
-
-
+    // std::cout << "BEFORE PUT WELT!" << std::endl;
+    // m_partvec.put(std::move(particles));
+    // std::cout << "AFTER PUT WELT!" << std::endl;
+    //
+    //
+    //
 
 
 
@@ -106,6 +126,8 @@ StatusCode ParticleGunAlg::finalize() {
 
 
 SimParticleContainer ParticleGunAlg::genVertexParticles(std::mt19937& rng, std::normal_distribution<double>& gauss) {
+
+  SimParticleContainer gen_particles;
 
   using UniformIndex = std::uniform_int_distribution<unsigned int>;
 
@@ -127,8 +149,7 @@ SimParticleContainer ParticleGunAlg::genVertexParticles(std::mt19937& rng, std::
                                                                                           // braucht man 3 elements statt 2?
   const double qChoices[] = {charge,-charge, };
 
-  SimParticleContainer particles;
-std::cout << "line 130"<< std::endl;
+  std::cout << "line 130"<< std::endl;
   for (size_t ip = 1 ; ip <= nParticles; ++ip) {
     const auto pid = ActsFatras::Barcode(0u).setParticle(ip);
     const unsigned int type = particleTypeChoice(rng);
@@ -149,14 +170,14 @@ std::cout << "line 130"<< std::endl;
 std::cout << "line 148"<< std::endl;
     double mass = 0.5;
 
-    ActsFatras::Particle particle(pid, pdg, q, mass);
-    particle.setDirection(direction);
-    particle.setAbsoluteMomentum(p);
+    ActsFatras::Particle _particle(pid, pdg, q, mass);
+    _particle.setDirection(direction);
+    _particle.setAbsoluteMomentum(p);
 std::cout << "line 155"<< std::endl;
-    particles.insert(particles.end(), std::move(particle));
+    gen_particles.insert(gen_particles.end(), std::move(_particle));
 std::cout << "line 157"<< std::endl;
   }
 std::cout << "line 159"<< std::endl;
-return particles;
+return gen_particles;
 
 };

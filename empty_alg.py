@@ -41,4 +41,4 @@ algList.append(d)
 
 from Configurables import ApplicationMgr
 #print("CRASH TEST")
-ApplicationMgr(TopAlg=algList, EvtSel="NONE", EvtMax=5, ExtSvc=[], OutputLevel=DEBUG)
+ApplicationMgr(TopAlg=algList, EvtSel="NONE", EvtMax=1, ExtSvc=[], OutputLevel=DEBUG)

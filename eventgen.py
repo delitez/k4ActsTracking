@@ -17,9 +17,11 @@ a.tSigma = 1 * actsUnits.ns
 a.nMultiplicity = 5;
 a.nParticles = 10;
 algList.append(a)
-
+from Configurables import EmptyAlg
+d=EmptyAlg("MyEmptyAlg")
+algList.append(d)
 
 
 from Configurables import ApplicationMgr
 
-ApplicationMgr(TopAlg=algList, EvtSel="NONE", EvtMax=2, ExtSvc=[], OutputLevel=DEBUG)
+ApplicationMgr(TopAlg=algList, EvtSel="NONE", EvtMax=1, ExtSvc=[], OutputLevel=DEBUG)

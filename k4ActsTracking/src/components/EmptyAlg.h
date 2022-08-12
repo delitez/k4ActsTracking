@@ -4,6 +4,7 @@
 #include "Gaudi/Property.h"
 #include "GaudiAlg/GaudiAlgorithm.h"
 
+
 class EmptyAlg : public GaudiAlgorithm {
 public:
   explicit EmptyAlg(const std::string&, ISvcLocator*);
@@ -24,4 +25,7 @@ public:
 private:
   // member variable
   int m_member = 0;
+//  AnyDataHandle<SimParticleContainer> p_partvec{"/Event/Test/TestVec4", Gaudi::DataHandle::Reader, this};
+
+
 };
