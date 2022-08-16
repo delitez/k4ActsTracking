@@ -5,7 +5,8 @@
 #include <filesystem>
 #include <unistd.h>
 #include "PropagatorAlg.h"
-
+#include "GaudiKernel/ObjectVector.h"
+#include "GaudiKernel/ContainedObject.h"
 //using std::filesystem::current_path;
 
 
@@ -21,20 +22,18 @@ StatusCode objectTest::execute() {
 
   typedef std::vector<int> MyTestVector;
   DataObject *pObject;
-  //std::string objectPath = "./testDir";
+  MyTestVectorS *m_vector = new MyTestVectorS();
 
-  StatusCode sc = eventSvc()->registerObject(".", pObject);
 
-   if( sc.isFailure() ) {
-      std::cout << "CANNOT initialize sc" << std::endl;
-      return StatusCode::FAILURE;
-   }
-   else{
-     std::cout << "CAN initialize sc" << std::endl;
-   }
 
-   MyTestVector *tv = 0;
-   tv = dynamic_cast<MyTestVector *> (pObject);
+  StatusCode sc = eventSvc()->registerObject("/Event/Test", m_vector);
+  if( sc.isFailure() ) {
+     std::cout << "CANNOT initialize sc" << std::endl;
+     return StatusCode::FAILURE;
+  }
+  else{
+    std::cout << "CAN initialize sc" << std::endl;
+  }
 
 
    std::cout << "Object Test is alive!" << std::endl;

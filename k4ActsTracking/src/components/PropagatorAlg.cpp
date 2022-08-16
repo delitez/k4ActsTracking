@@ -5,7 +5,7 @@
 #include "GaudiKernel/Service.h"
 #include "TGeoManager.h"
 #include "TTree.h"
-
+#include "GaudiKernel/ServiceHandle.h"
 DECLARE_COMPONENT(PropagatorAlg)
 
 using namespace Acts;
@@ -39,10 +39,19 @@ PropagatorAlg::~PropagatorAlg() {}
 
 StatusCode PropagatorAlg::initialize() {
   m_geoSvc = service("GeoSvc");
+  m_rndSvc = service("RandomNumberSvc");
 
   if (!m_geoSvc) {
     std::cout << "Unable to locate Geometry Service. " << std::endl;
     return StatusCode::FAILURE;
+  }
+
+  if (!m_rndSvc) {
+    std::cout << "Unable to use Random Number Service. " << std::endl;
+    return StatusCode::FAILURE;
+  }
+  else {
+    std::cout << "Random Number Service is initilazied. " << std::endl;
   }
 
   if (service("THistSvc", m_ths).isFailure()) {
@@ -61,7 +70,12 @@ StatusCode PropagatorAlg::initialize() {
 
 StatusCode PropagatorAlg::execute() {
   cleanTrees();
-  std::mt19937                     rng{1};
+  auto tSeed = m_rndSvc->getSeed();
+
+  std::cout << "tSeed: " << tSeed << std::endl;
+
+//  static int seed = 5;
+  std::mt19937                     rng{tSeed++};
   std::normal_distribution<double> gauss(0., 1.);
   std::round(gauss(rng));
 
@@ -84,29 +98,35 @@ StatusCode PropagatorAlg::execute() {
     testVar.push_back(i);
   }
 
-  // loop over number of particles
-  for (size_t it = 0; it < ntests; ++it) {
-    /// get the d0 and z0
-    double d0     = d0Sigma * gauss(rng);
-    double z0     = z0Sigma * gauss(rng);
-    double phi    = phiDist(rng);
+  const SimParticleContainer* p_partvect = p_partvec.get();
+
+    for (auto i = p_partvect->begin(); i < p_partvect->end(); i++) {
+
+    double d0     = d0Sigma * gauss(rng);    //TODO :: set from 4pos of the particle position
+    double z0     = z0Sigma * gauss(rng);     /// parameter aus singleboundtrackparameters, see link from 10.8.
+    double phi    = phiDist(rng);           /// random numbers-randomnumbersvc?
     double eta    = etaDist(rng);
     double theta  = 2 * atan(exp(-eta));
-    double pt     = ptDist(rng);
-    double p      = pt / sin(theta);
-    double charge = qDist(rng) > 0.5 ? 1. : -1.;
-    double qop    = charge / p;
     double t      = tSigma * gauss(rng);
+
+
+    double pt     = i->transverseMomentum();
+    double p      = pt / sin(theta);
+    double charge = i->charge();
+    double qop    = charge / p;
+
 
     // parameters
     Acts::BoundVector pars;
     pars << d0, z0, phi, theta, qop, t;
+
 
     Acts::Vector3 sPosition(0., 0., 0.);
     Acts::Vector3 sMomentum(0., 0., 0.);
 
     // The covariance generation
     auto cov = generateCovariance(rng, gauss);
+
 
     auto tGeometry = m_geoSvc->trackingGeometry();
 
@@ -162,7 +182,7 @@ StatusCode PropagatorAlg::execute() {
       }
     }
     m_outputTree->Fill();
-  }
+  } ///// END OF FOR LOOP OVER NTESTS
 
   return StatusCode::SUCCESS;
 }

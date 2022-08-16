@@ -5,13 +5,12 @@
 #include "GaudiAlg/GaudiAlgorithm.h"
 #include "GaudiKernel/IDataProviderSvc.h"
 #include "GaudiKernel/ObjectVector.h"
+#include "GaudiKernel/ContainedObject.h"
 
-
-
-class objectTest : public GaudiAlgorithm {
+class objectTestFind : public GaudiAlgorithm {
 public:
-  explicit objectTest(const std::string&, ISvcLocator*);
-  virtual ~objectTest();
+  explicit objectTestFind(const std::string&, ISvcLocator*);
+  virtual ~objectTestFind();
   /**  Initialize.
    *   @return status code
    */
