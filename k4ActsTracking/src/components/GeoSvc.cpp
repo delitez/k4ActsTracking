@@ -13,6 +13,7 @@
 #include "DD4hep/Printout.h"
 #include "GaudiKernel/Service.h"
 #include "TGeoManager.h"
+#include "RandomNumberSvc.h"
 
 using namespace Gaudi;
 
