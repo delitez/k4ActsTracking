@@ -6,6 +6,9 @@ from Configurables import EmptyAlg
 from Configurables import objectTestFind
 from Configurables import objectTest
 from Configurables import ParticleGunAlg
+from Configurables import GeoSvc
+from Configurables import RandomNumberSvc
+from Configurables import EventCounter
 #
 # algList = []
 #
@@ -33,12 +36,21 @@ a.tSigma = 1 * actsUnits.ns
 a.nMultiplicity = 5;
 a.nParticles = 10;
 #a.objectPath = "/Event/MyParticle4"
-algList.append(a)
+#algList.append(a)
+
+b = RandomNumberSvc("MyRndNbrSvc")
+
+
 
 
 d=EmptyAlg("MyEmptyAlg")
-algList.append(d)
+#algList.append(d)
+
+c = GeoSvc("GeoSvc")
+c.detectors = ["/home/delitez/ACTS/acts/thirdparty/OpenDataDetector/xml/OpenDataDetector.xml"]
+c.debugGeometry = True
+c.outputFileName = "MyObjFileTESTparticleGun"
 
 from Configurables import ApplicationMgr
 #print("CRASH TEST")
-ApplicationMgr(TopAlg=algList, EvtSel="NONE", EvtMax=1, ExtSvc=[], OutputLevel=DEBUG)
+ApplicationMgr(TopAlg=algList, EvtSel="NONE", EvtMax=1, ExtSvc=[b], OutputLevel=DEBUG)

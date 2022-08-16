@@ -10,7 +10,7 @@
 #include "GaudiAlg/GaudiAlgorithm.h"
 #include "GaudiKernel/DataObjectHandle.h"
 #include "GaudiKernel/AnyDataWrapper.h"
-#include <GaudiKernel/AnyDataHandle.h>
+#include "GaudiKernel/AnyDataHandle.h"
 #include "Acts/Definitions/Algebra.hpp"
 #include "ActsFatras/EventData/Particle.hpp"
 #include "ActsFatras/Utilities/ParticleData.hpp"
@@ -50,27 +50,11 @@ public:
 
 SimParticleContainer genVertexParticles(std::mt19937& rng, std::normal_distribution<double>& gauss);
 
-
 SimParticleContainer particles;
-
-  struct MultiplicityGenerator {
-    virtual ~MultiplicityGenerator() = default;
-    virtual size_t operator()(std::mt19937& rng) const = 0;
-  };
-
-  // struct VertexGenerator{
-  //   virtual ~VertexGenerator() = default;
-  //   virtual Acts::Vector4 operator()(std::mt19937& rng) const = 0;
-  // };
-
-  struct Container  : public DataObject {
-    SimParticleContainer m_particles;
-  };
-
 
 private:
 
-AnyDataHandle<SimParticleContainer> m_partvec{"/Event/Test/TestVec4", Gaudi::DataHandle::Writer, this};
+DataObjectHandle<AnyDataWrapper<SimParticleContainer>> m_partvec{"/Event/testVec", Gaudi::DataHandle::Writer, this};
 
 
 public:

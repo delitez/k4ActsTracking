@@ -12,6 +12,11 @@
 #include "GaudiKernel/ServiceHandle.h"
 #include "IGeoSvc.h"
 #include "IPropagatorAlg.h"
+#include "IRandomNumberSvc.h"
+#include "ParticleGunAlg.h"
+#include "RandomNumberSvc.h"
+#include<boost/container/flat_set.hpp>
+
 
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Definitions/Units.hpp"
@@ -100,9 +105,12 @@ public:
 
 private:
   Config                              m_cfg;
+
   std::vector<PropagationOutput>      testvec;
   std::mt19937                        rng;
   std::optional<Acts::BoundSymMatrix> generateCovariance(std::mt19937& rng, std::normal_distribution<double>& gauss);
+
+
 
   ITHistSvc* m_ths{nullptr};
   TTree*     m_outputTree{nullptr};
@@ -122,6 +130,8 @@ private:
   std::vector<int> m_sensitiveID;  ///< surface identifier
 
   Config readPropagationConfig(const boost::program_options::variables_map& vm);
+
+  DataObjectHandle<AnyDataWrapper<SimParticleContainer>> p_partvec{"/Event/testVec", Gaudi::DataHandle::Reader, this};
 
   Gaudi::Property<int> mode{this, "mode", 0, "Option for propagation mode."};
 
@@ -214,6 +224,8 @@ private:
 
 public:
   SmartIF<IGeoSvc> m_geoSvc;
+
+  SmartIF<IRandomNumberSvc> m_rndSvc;
 
   explicit PropagatorAlg(const std::string&, ISvcLocator*);
 

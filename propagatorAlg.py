@@ -6,6 +6,9 @@ from Gaudi.Configuration import *
 from Configurables import objectTest
 from Configurables import PropagatorAlg
 from Configurables import GeoSvc
+from Configurables import ParticleGunAlg
+from Configurables import RandomNumberSvc
+from Configurables import EventCounter
 
 sys.path.append('/home/delitez/ACTS/spack/k4actstracking')
 import actsUnits
@@ -13,9 +16,18 @@ import actsUnits
 
 algList = []
 
-a = objectTest("MyobjectTest")
-algList.append(a)
+# a = objectTest("MyobjectTest")
+# algList.append(a)
 
+
+a = ParticleGunAlg("MyParticleGunAlg")
+a.d0Sigma = 15 * actsUnits.um
+a.z0Sigma = 55 * actsUnits.mm
+a.tSigma = 1 * actsUnits.ns
+a.nMultiplicity = 5;
+a.nParticles = 10;
+#a.objectPath = "/Event/MyParticle4"
+algList.append(a)
 
 b = PropagatorAlg("PropagatorAlg")
 #
@@ -44,16 +56,24 @@ algList.append(b)
 c = GeoSvc("GeoSvc")
 c.detectors = ["/home/delitez/ACTS/acts/thirdparty/OpenDataDetector/xml/OpenDataDetector.xml"]
 c.debugGeometry = True
-c.outputFileName = "MyObjFile"
+c.outputFileName = "MyObjFileParticleGunTest"
+
+d = RandomNumberSvc("MyRndNbrSvc")
+d.algNum = len(algList);
+d.evNum = b.ntests;
+
+
+e = EventCounter("MyEventCounter")
+algList.append(e)
 
 
 from Configurables import ApplicationMgr
 
 from Configurables import THistSvc
-THistSvc().Output = ["rec DATAFILE='propagatorAlgOutput_TEST.root' TYP='ROOT' OPT='RECREATE'"]
+THistSvc().Output = ["rec DATAFILE='propagatorAlgOutput_PARTICLEGUN.root' TYP='ROOT' OPT='RECREATE'"]
 THistSvc().OutputLevel = DEBUG
 THistSvc().PrintAll = True
 THistSvc().AutoSave = True
 THistSvc().AutoFlush = True
 
-ApplicationMgr(TopAlg=algList, EvtSel="NONE", EvtMax=3, ExtSvc=[c], OutputLevel=DEBUG)
+ApplicationMgr(TopAlg=algList, EvtSel="NONE", EvtMax=20, ExtSvc=[c,d], OutputLevel=DEBUG)
