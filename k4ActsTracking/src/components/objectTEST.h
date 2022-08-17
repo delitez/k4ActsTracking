@@ -3,13 +3,15 @@
 // GAUDI
 #include "Gaudi/Property.h"
 #include "GaudiAlg/GaudiAlgorithm.h"
-#include "ParticleGunAlg.h"
+#include "GaudiKernel/IDataProviderSvc.h"
+#include "GaudiKernel/ObjectVector.h"
 
 
-class EmptyAlg : public GaudiAlgorithm {
+
+class objectTest : public GaudiAlgorithm {
 public:
-  explicit EmptyAlg(const std::string&, ISvcLocator*);
-  virtual ~EmptyAlg();
+  explicit objectTest(const std::string&, ISvcLocator*);
+  virtual ~objectTest();
   /**  Initialize.
    *   @return status code
    */
@@ -24,9 +26,9 @@ public:
   virtual StatusCode finalize() final;
 
 private:
-  // member variable
-  int m_member = 0;
-  DataObjectHandle<AnyDataWrapper<SimParticleContainer>> p_partvec{"/Event/testVec", Gaudi::DataHandle::Reader, this};
 
+};
 
+struct MyTestVectorS  : public DataObject {
+  std::vector<double> m_MyTestVector;
 };

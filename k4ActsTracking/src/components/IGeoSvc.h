@@ -25,7 +25,8 @@ public:
 public:
   DeclareInterfaceID(IGeoSvc, 1, 0);
 
-  virtual const Acts::TrackingGeometry& trackingGeometry() const = 0;
+  //virtual const Acts::TrackingGeometry& trackingGeometry() const = 0;
+  virtual std::shared_ptr<const Acts::TrackingGeometry> trackingGeometry() const = 0;
 
   virtual ~IGeoSvc() {}
 };

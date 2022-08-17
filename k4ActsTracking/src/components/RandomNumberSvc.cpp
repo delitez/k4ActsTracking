@@ -3,7 +3,6 @@
 
 #include "RandomNumberSvc.h"
 #include "GaudiKernel/Service.h"
-#include "GaudiKernel/SmartDataPtr.h"
 #include "IRandomNumberSvc.h"
 
 using namespace Gaudi;
@@ -18,14 +17,10 @@ StatusCode RandomNumberSvc::initialize() {
 
   auto m_seedPtr = generateSeed();
 
-  auto m_rdn = spawnGenerator(generateSeed());
-
   return StatusCode::SUCCESS;
 }
 
 StatusCode RandomNumberSvc::execute() {
-
-  SmartDataPtr<Event> evt(eventSvc(), "/Event");
 
   return StatusCode::SUCCESS;
 }
@@ -43,8 +38,4 @@ const uint64_t k2 = evNum;
 const uint64_t id = (k1+k2) * (k1+k2+1) / 2 + k2;
 return seed + id;
 
-}
-
-RandomEngine spawnGenerator(uint64_t seed) {
-  return RandomEngine(seed);
 }

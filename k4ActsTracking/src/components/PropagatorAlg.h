@@ -5,10 +5,24 @@
 #ifndef PropagatorAlg_H
 #define PropagatorAlg_H
 
+#include "Gaudi/Property.h"
+#include "GaudiAlg/GaudiAlgorithm.h"
+#include "GaudiKernel/MsgStream.h"
+#include "GaudiKernel/Service.h"
+#include "GaudiKernel/ServiceHandle.h"
+#include "IGeoSvc.h"
+#include "IPropagatorAlg.h"
+#include "IRandomNumberSvc.h"
+#include "ParticleGunAlg.h"
+#include "RandomNumberSvc.h"
+#include<boost/container/flat_set.hpp>
+
+
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Definitions/Units.hpp"
 #include "Acts/EventData/NeutralTrackParameters.hpp"
 #include "Acts/EventData/TrackParameters.hpp"
+#include "Acts/MagneticField/ConstantBField.hpp"
 #include "Acts/Propagator/AbortList.hpp"
 #include "Acts/Propagator/ActionList.hpp"
 #include "Acts/Propagator/DenseEnvironmentExtension.hpp"
@@ -20,19 +34,16 @@
 #include "Acts/Propagator/detail/SteppingLogger.hpp"
 #include "Acts/Surfaces/PerigeeSurface.hpp"
 #include "Acts/Utilities/Helpers.hpp"
+#include "Acts/Utilities/Logger.hpp"
 
-//#include "ActsExamples/Framework/BareAlgorithm.hpp"
-#include "ProcessCode.hpp"
-//#include "ActsExamples/Framework/RandomNumbers.hpp"
 #include "AlgorithmContext.hpp"
 #include "CommonGeometry.hpp"
 #include "CommonOptions.hpp"
 #include "IBaseDetector.hpp"
 #include "MagneticFieldOptions.hpp"
-#include "PropagationOptions.hpp"
-#include "WhiteBoard.hpp"
+#include "ProcessCode.hpp"
 
-//#include "PropagationOptions.hpp"
+#include "WhiteBoard.hpp"
 
 #include <cmath>
 #include <limits>
@@ -40,22 +51,24 @@
 #include <optional>
 #include <random>
 
-#include "GaudiKernel/MsgStream.h"
-#include "GaudiKernel/Service.h"
-#include "GaudiKernel/ServiceHandle.h"
-//#include "IPropagatorAlg.h"
 #include "Acts/Definitions/Units.hpp"
 #include "Acts/Utilities/Logger.hpp"
 #include "CommonOptions.hpp"
 #include "Gaudi/Property.h"
 #include "GaudiAlg/GaudiAlgorithm.h"
+#include "GaudiKernel/MsgStream.h"
+#include "GaudiKernel/Service.h"
+#include "GaudiKernel/ServiceHandle.h"
 #include "Options.hpp"
+
+#include "GaudiKernel/ITHistSvc.h"
+
+#include "TGraph.h"
+#include "TH1F.h"
 
 #include <iostream>
 
 #include <boost/program_options.hpp>
-
-class PropagatorInterface;
 
 using RecordedMaterial      = Acts::MaterialInteractor::result_type;
 using RecordedMaterialTrack = std::pair<std::pair<Acts::Vector3, Acts::Vector3>, RecordedMaterial>;
@@ -65,59 +78,21 @@ std::optional<Acts::BoundSymMatrix> generateCovariance(std::mt19937& rng, std::n
 class PropagatorAlg : public GaudiAlgorithm {
 public:
   struct Config {
-    /// Instance of a propagator wrapper that performs the actual propagation
-    std::shared_ptr<PropagatorInterface> propagatorImpl = nullptr;
-
     /// how to set it up
     std::mt19937 randomNumberSvc{0};
 
-    /// proapgation mode
-    int mode = 0;
-    /// Switch the logger to sterile
-    bool sterileLogger = false;
-    /// debug output
-    bool debugOutput = false;
-    /// Modify the behavior of the material interaction: energy loss
-    bool energyLoss = true;
-    /// Modify the behavior of the material interaction: scattering
-    bool multipleScattering = true;
-    /// Modify the behavior of the material interaction: record
-    bool recordMaterialInteractions = true;
-
-    /// number of particles
-    size_t ntests = 100;
-    /// d0 gaussian sigma
-    double d0Sigma = 15 * Acts::UnitConstants::um;
-    /// z0 gaussian sigma
-    double z0Sigma = 55 * Acts::UnitConstants::mm;
-    /// phi gaussian sigma (used for covariance transport)
-    double phiSigma = 0.001;
-    /// theta gaussian sigma (used for covariance transport)
-    double thetaSigma = 0.001;
-    /// qp gaussian sigma (used for covariance transport)
-    double qpSigma = 0.0001 / 1 * Acts::UnitConstants::GeV;
-    /// t gaussian sigma (used for covariance transport)
-    double tSigma = 1 * Acts::UnitConstants::ns;
     /// phi range
     std::pair<double, double> phiRange = {-M_PI, M_PI};
     /// eta range
     std::pair<double, double> etaRange = {-4., 4.};
     /// pt range
     std::pair<double, double> ptRange = {100 * Acts::UnitConstants::MeV, 100 * Acts::UnitConstants::GeV};
-    /// looper protection
-    double ptLoopers = 500 * Acts::UnitConstants::MeV;
-
-    /// Max step size steering
-    double maxStepSize = 3 * Acts::UnitConstants::m;
 
     /// The step collection to be stored
     std::string propagationStepCollection = "PropagationSteps";
 
     /// The material collection to be stored
     std::string propagationMaterialCollection = "RecordedMaterialTracks";
-
-    /// covariance transport
-    bool covarianceTransport = false;
 
     /// The covariance values
     Acts::BoundVector covariances = Acts::BoundVector::Zero();
@@ -129,16 +104,129 @@ public:
   const Config& config() const { return m_cfg; }
 
 private:
-  Config m_cfg;
-  Config readPropagationConfig(const boost::program_options::variables_map& vm);
+  Config                              m_cfg;
 
-  //MsgStream m_log;
-
-  std::random_device                  rd{};
-  std::mt19937                        rng{rd()};
+  std::vector<PropagationOutput>      testvec;
+  std::mt19937                        rng;
   std::optional<Acts::BoundSymMatrix> generateCovariance(std::mt19937& rng, std::normal_distribution<double>& gauss);
 
+
+
+  ITHistSvc* m_ths{nullptr};
+  TTree*     m_outputTree{nullptr};
+
+  std::vector<float> testVar;
+  std::vector<float> m_x;   ///< global x
+  std::vector<float> m_y;   ///< global y
+  std::vector<float> m_z;   ///< global z
+  std::vector<float> m_dx;  ///< global direction x
+  std::vector<float> m_dy;  ///< global direction y
+  std::vector<float> m_dz;  ///< global direction z
+
+  std::vector<int> m_volumeID;     ///< volume identifier
+  std::vector<int> m_boundaryID;   ///< boundary identifier
+  std::vector<int> m_layerID;      ///< layer identifier if
+  std::vector<int> m_approachID;   ///< surface identifier
+  std::vector<int> m_sensitiveID;  ///< surface identifier
+
+  Config readPropagationConfig(const boost::program_options::variables_map& vm);
+
+  DataObjectHandle<AnyDataWrapper<SimParticleContainer>> p_partvec{"/Event/testVec", Gaudi::DataHandle::Reader, this};
+
+  Gaudi::Property<int> mode{this, "mode", 0, "Option for propagation mode."};
+
+  Gaudi::Property<bool> sterileLogger{this, "sterileLogger", false, "Option to switch the logger to sterile."};
+
+  Gaudi::Property<bool> debugOutput{this, "debugOutput", false, "Option for the debug output."};
+
+  Gaudi::Property<bool> energyLoss{this, "energyLoss", true,
+                                   "Option to modify the behavior of the material interaction: energy loss."};
+
+  Gaudi::Property<bool> multipleScattering{this, "multipleScattering", true,
+                                           "Option to modify the behavior of the material interaction: scattering"};
+
+  Gaudi::Property<bool> recordMaterialInteractions{this, "recordMaterialInteractions", true,
+                                                   "Option to modify the behavior of the material interaction: record"};
+
+  Gaudi::Property<int> ntests{this, "ntests", 0, "Option for number of particles"};
+
+  Gaudi::Property<bool> covarianceTransport{this, "covarianceTransport", false, "Option for covariance transport."};
+
+  Gaudi::Property<double> d0Sigma{this, "d0Sigma", 0, "Option for d0 gaussian sigma"};
+
+  Gaudi::Property<double> z0Sigma{this, "z0Sigma", 0, "Option for z0 gaussian sigma"};
+
+  Gaudi::Property<double> phiSigma{this, "phiSigma", 0,
+                                   "Option for phi gaussian sigma (used for covariance transport)"};
+
+  Gaudi::Property<double> thetaSigma{this, "thetaSigma", 0,
+                                     "Option for theta gaussian sigma (used for covariance transport)"};
+
+  Gaudi::Property<double> qpSigma{this, "qpSigma", 0, "Option for qp gaussian sigma (used for covariance transport)"};
+
+  Gaudi::Property<double> tSigma{this, "tSigma", 0, "Option for t gaussian sigma (used for covariance transport)"};
+
+  Gaudi::Property<double> ptLoopers{this, "ptLoopers", 0, "Option for looper protection"};
+
+  Gaudi::Property<double> maxStepSize{this, "maxStepSize", 0, "Option for Max step size steering"};
+
+  Gaudi::Property<int> sensitiveIDopt{this, "sensitiveIDopt", 0, "Option for sensitiveID"};
+
+  template <typename parameters_t>
+  PropagationOutput executeTest(Acts::Propagator<Acts::EigenStepper<>, Acts::Navigator>& propagator,
+                                parameters_t&                                            startParameters) {
+    PropagationOutput pOutput;
+    ACTS_LOCAL_LOGGER(Acts::getDefaultLogger("Propagation Logger", Acts::Logging::INFO));
+
+    if (mode == 0) {
+      using MaterialInteractor = Acts::MaterialInteractor;
+      using SteppingLogger     = Acts::detail::SteppingLogger;
+      using EndOfWorld         = Acts::EndOfWorldReached;
+
+      using ActionList        = Acts::ActionList<SteppingLogger, MaterialInteractor>;
+      using AbortList         = Acts::AbortList<EndOfWorld>;
+      using PropagatorOptions = Acts::DenseStepperPropagatorOptions<ActionList, AbortList>;
+
+      const Acts::GeometryContext      geoContext;
+      const Acts::MagneticFieldContext magFieldContext;
+
+      PropagatorOptions options(geoContext, magFieldContext, Acts::LoggerWrapper{logger()});
+
+      options.pathLimit = std::numeric_limits<double>::max();
+
+      options.loopProtection = (startParameters.transverseMomentum() < ptLoopers);
+
+      auto& mInteractor              = options.actionList.get<MaterialInteractor>();
+      mInteractor.multipleScattering = multipleScattering;
+      mInteractor.energyLoss         = energyLoss;
+      mInteractor.recordInteractions = recordMaterialInteractions;
+
+      auto& sLogger   = options.actionList.get<SteppingLogger>();
+      sLogger.sterile = sterileLogger;
+
+      options.maxStepSize = maxStepSize;
+
+      auto result = propagator.propagate(startParameters, options);
+      if (result.ok()) {
+        const auto& resultValue     = result.value();
+        auto        steppingResults = resultValue.template get<SteppingLogger::result_type>();
+
+        pOutput.first = std::move(steppingResults.steps);
+
+        if (recordMaterialInteractions) {
+          auto materialResult = resultValue.template get<MaterialInteractor::result_type>();
+          pOutput.second      = std::move(materialResult);
+        }
+      }
+      return pOutput;
+    }
+  }
+
 public:
+  SmartIF<IGeoSvc> m_geoSvc;
+
+  SmartIF<IRandomNumberSvc> m_rndSvc;
+
   explicit PropagatorAlg(const std::string&, ISvcLocator*);
 
   virtual ~PropagatorAlg();
@@ -148,81 +236,11 @@ public:
   virtual StatusCode execute() final;
 
   virtual StatusCode finalize() final;
-};
 
-inline PropagatorAlg::Config readPropagationConfig(const boost::program_options::variables_map& vm) {
-  using namespace Acts::UnitLiterals;
-  PropagatorAlg::Config pAlgConfig;
+  virtual StatusCode initializeTrees() final;
 
-  auto iphir = vm["prop-phi-range"].template as<ActsExamples::Options::Reals<2>>();
-  auto ietar = vm["prop-eta-range"].template as<ActsExamples::Options::Reals<2>>();
-  auto iptr  = vm["prop-pt-range"].template as<ActsExamples::Options::Reals<2>>();
+  virtual StatusCode cleanTrees() final;
 
-  /// Material interaction behavior
-  pAlgConfig.energyLoss                 = vm["prop-energyloss"].template as<bool>();
-  pAlgConfig.multipleScattering         = vm["prop-scattering"].template as<bool>();
-  pAlgConfig.recordMaterialInteractions = vm["prop-record-material"].template as<bool>();
-
-  /// Create the config for the Extrapoaltion algorithm
-  pAlgConfig.debugOutput = vm["prop-debug"].template as<bool>();
-  pAlgConfig.ntests      = vm["prop-ntests"].template as<size_t>();
-  pAlgConfig.mode        = vm["prop-mode"].template as<int>();
-  pAlgConfig.d0Sigma     = vm["prop-d0-sigma"].template as<double>() * 1_mm;
-  pAlgConfig.z0Sigma     = vm["prop-z0-sigma"].template as<double>() * 1_mm;
-  pAlgConfig.phiSigma    = vm["prop-phi-sigma"].template as<double>();
-  pAlgConfig.thetaSigma  = vm["prop-theta-sigma"].template as<double>();
-  pAlgConfig.qpSigma     = vm["prop-qp-sigma"].template as<double>() / 1_GeV;
-  pAlgConfig.tSigma      = vm["prop-t-sigma"].template as<double>() * 1_ns;
-
-  pAlgConfig.phiRange    = {iphir[0], iphir[1]};
-  pAlgConfig.etaRange    = {ietar[0], ietar[1]};
-  pAlgConfig.ptRange     = {iptr[0] * 1_GeV, iptr[1] * 1_GeV};
-  pAlgConfig.ptLoopers   = vm["prop-pt-loopers"].template as<double>() * 1_GeV;
-  pAlgConfig.maxStepSize = vm["prop-max-stepsize"].template as<double>() * 1_mm;
-
-  pAlgConfig.propagationStepCollection     = vm["prop-step-collection"].template as<std::string>();
-  pAlgConfig.propagationMaterialCollection = vm["prop-material-collection"].template as<std::string>();
-
-  /// The covariance transport
-  if (vm["prop-cov"].template as<bool>()) {
-    /// Set the covariance transport to true
-    pAlgConfig.covarianceTransport = true;
-    /// Set the covariance matrix
-    pAlgConfig.covariances(Acts::BoundIndices::eBoundLoc0)   = pAlgConfig.d0Sigma * pAlgConfig.d0Sigma;
-    pAlgConfig.covariances(Acts::BoundIndices::eBoundLoc1)   = pAlgConfig.z0Sigma * pAlgConfig.z0Sigma;
-    pAlgConfig.covariances(Acts::BoundIndices::eBoundPhi)    = pAlgConfig.phiSigma * pAlgConfig.phiSigma;
-    pAlgConfig.covariances(Acts::BoundIndices::eBoundTheta)  = pAlgConfig.thetaSigma * pAlgConfig.thetaSigma;
-    pAlgConfig.covariances(Acts::BoundIndices::eBoundQOverP) = pAlgConfig.qpSigma * pAlgConfig.qpSigma;
-    pAlgConfig.covariances(Acts::BoundIndices::eBoundTime)   = pAlgConfig.tSigma * pAlgConfig.tSigma;
-
-    // Only if they are properly defined, assign off-diagonals
-    if (vm.count("prop-corr-offd")) {
-      auto readOffd = vm["prop-corr-offd"].template as<ActsExamples::Options::Reals<15>>();
-      pAlgConfig.correlations(Acts::BoundIndices::eBoundLoc0, Acts::BoundIndices::eBoundLoc1)    = readOffd[0];
-      pAlgConfig.correlations(Acts::BoundIndices::eBoundLoc0, Acts::BoundIndices::eBoundPhi)     = readOffd[1];
-      pAlgConfig.correlations(Acts::BoundIndices::eBoundLoc0, Acts::BoundIndices::eBoundTheta)   = readOffd[2];
-      pAlgConfig.correlations(Acts::BoundIndices::eBoundLoc0, Acts::BoundIndices::eBoundQOverP)  = readOffd[3];
-      pAlgConfig.correlations(Acts::BoundIndices::eBoundLoc0, Acts::BoundIndices::eBoundTime)    = readOffd[4];
-      pAlgConfig.correlations(Acts::BoundIndices::eBoundLoc1, Acts::BoundIndices::eBoundPhi)     = readOffd[5];
-      pAlgConfig.correlations(Acts::BoundIndices::eBoundLoc1, Acts::BoundIndices::eBoundTheta)   = readOffd[6];
-      pAlgConfig.correlations(Acts::BoundIndices::eBoundLoc1, Acts::BoundIndices::eBoundQOverP)  = readOffd[7];
-      pAlgConfig.correlations(Acts::BoundIndices::eBoundLoc1, Acts::BoundIndices::eBoundTime)    = readOffd[8];
-      pAlgConfig.correlations(Acts::BoundIndices::eBoundPhi, Acts::BoundIndices::eBoundTheta)    = readOffd[9];
-      pAlgConfig.correlations(Acts::BoundIndices::eBoundPhi, Acts::BoundIndices::eBoundQOverP)   = readOffd[10];
-      pAlgConfig.correlations(Acts::BoundIndices::eBoundPhi, Acts::BoundIndices::eBoundTime)     = readOffd[11];
-      pAlgConfig.correlations(Acts::BoundIndices::eBoundTheta, Acts::BoundIndices::eBoundQOverP) = readOffd[12];
-      pAlgConfig.correlations(Acts::BoundIndices::eBoundTheta, Acts::BoundIndices::eBoundTime)   = readOffd[13];
-      pAlgConfig.correlations(Acts::BoundIndices::eBoundQOverP, Acts::BoundIndices::eBoundTime)  = readOffd[14];
-    } else {
-      /// Some pre-defined values (non-trivial helical correlations)
-      pAlgConfig.correlations(Acts::BoundIndices::eBoundLoc0, Acts::BoundIndices::eBoundPhi)    = -0.8;
-      pAlgConfig.correlations(Acts::BoundIndices::eBoundLoc0, Acts::BoundIndices::eBoundQOverP) = -0.3;
-      pAlgConfig.correlations(Acts::BoundIndices::eBoundLoc1, Acts::BoundIndices::eBoundTheta)  = -0.8;
-      pAlgConfig.correlations(Acts::BoundIndices::eBoundPhi, Acts::BoundIndices::eBoundQOverP)  = 0.4;
-    }
-  }
-
-  return pAlgConfig;
-}
+};  // class
 
 #endif

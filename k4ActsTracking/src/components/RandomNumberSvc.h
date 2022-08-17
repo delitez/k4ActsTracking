@@ -29,11 +29,7 @@ public:
 
   virtual uint64_t getSeed();
 
-  virtual RandomEngine getRdn();
-
   uint64_t generateSeed();
-
-  RandomEngine spawnGenerator(uint64_t seed);
 
 
 private:
@@ -42,13 +38,10 @@ private:
 
   uint64_t m_seedPtr;
 
-  RandomEngine m_rdn;
-
   Gaudi::Property<int> algNum{this, "algNum", 0, "Option for propagation mode."};
 
   Gaudi::Property<int> evNum{this, "evNum", 0, "Option for propagation mode."};
 
 };
 inline uint64_t RandomNumberSvc::getSeed() { return m_seedPtr; }
-inline RandomEngine RandomNumberSvc::getRdn() {return m_rdn; }
 #endif

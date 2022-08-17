@@ -9,6 +9,8 @@ gaudi_add_module(k4ActsTrackingPlugins
   ActsCore ActsPluginDD4hep
   ActsDD4hep::ActsDD4hep
   Boost::program_options
+  ROOT::Core
+  ActsFatras
  )
 
 set(GAUDI_GENCONF_DIR "genConfDir")

@@ -13,6 +13,7 @@
 #include "DD4hep/Printout.h"
 #include "GaudiKernel/Service.h"
 #include "TGeoManager.h"
+#include "RandomNumberSvc.h"
 
 using namespace Gaudi;
 
@@ -97,8 +98,6 @@ StatusCode GeoSvc::buildDD4HepGeo() {
 
 /// Create a geometry OBJ file
 StatusCode GeoSvc::createGeoObj() {
-  // Convert DD4Hep geometry to acts
-
   Acts::ObjVisualization3D m_obj;
 
   if (!m_trackingGeo) {

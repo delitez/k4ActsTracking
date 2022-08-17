@@ -10,6 +10,9 @@ StatusCode EmptyAlg::initialize() { return StatusCode::SUCCESS; }
 
 StatusCode EmptyAlg::execute() {
   std::cout << "HALLO WELT!" << std::endl;
+ const SimParticleContainer* p_partvect = p_partvec.get();
+
+    std::cout << "HADE WELT!" << std::endl;
   return StatusCode::SUCCESS;
 }
 
