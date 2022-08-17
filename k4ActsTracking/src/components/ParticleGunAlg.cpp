@@ -12,16 +12,12 @@ ParticleGunAlg::~ParticleGunAlg() { }
 
 StatusCode ParticleGunAlg::initialize() {
 
+  auto gen_gauss = randSvc()->generator( Rndm::Gauss( 0., 1. ) );
+  auto gen_flat = randSvc()->generator( Rndm::Flat( 0., 1. ) );
+
   return StatusCode::SUCCESS;
 }
 StatusCode ParticleGunAlg::execute() {
-
-
-
-   static int seed = 5;
-   std::mt19937 rng{seed++};
-   std::normal_distribution<double> gauss(0., 1.);
-   std::round(gauss(rng));
 
   size_t nPrimaryVertices = 0;
 
@@ -33,7 +29,7 @@ StatusCode ParticleGunAlg::execute() {
 
 //    auto vertexPosition = (*vertex)(rng);
      auto vertexPosition = Acts::Vector4(1.,1.,1.,1.);
-     auto vertexParticles = genVertexParticles(rng,gauss);
+     auto vertexParticles = genVertexParticles();
 
 
 Acts::PdgParticle pdg = Acts::PdgParticle::eMuon;
@@ -90,39 +86,48 @@ StatusCode ParticleGunAlg::finalize() {
 }
 
 
-SimParticleContainer ParticleGunAlg::genVertexParticles(std::mt19937& rng, std::normal_distribution<double>& gauss) {
+SimParticleContainer ParticleGunAlg::genVertexParticles() {
 
   SimParticleContainer gen_particles;
 
   using UniformIndex = std::uniform_int_distribution<unsigned int>;
 
+  Rndm::Numbers gauss( randSvc(), Rndm::Gauss( 0., 1. ) );
+  Rndm::Numbers phiDist( randSvc(), Rndm::Flat( 0., 2*M_PI ) );
+  Rndm::Numbers etaDist( randSvc(), Rndm::Flat( -4., 4. ) );
+  Rndm::Numbers ptDist( randSvc(), Rndm::Flat( 10., 20. ) );
+  Rndm::Numbers qDist( randSvc(), Rndm::Flat( 0., 1. ) );
 
-  std::uniform_real_distribution<double> phiDist(0, 2 * M_PI);
-  std::uniform_real_distribution<double> etaDist(-4.0, 4.0);
-  std::uniform_real_distribution<double> ptDist(10., 20.);
-  std::uniform_real_distribution<double> qDist(0., 1.);
 
-  double d0     = d0Sigma * gauss(rng);
-  double z0     = z0Sigma * gauss(rng);
-  double charge = qDist(rng) > 0.5 ? 1. : -1.;
-  double t      = tSigma * gauss(rng);
+  double d0     = d0Sigma * gauss();
+  double z0     = z0Sigma * gauss();
+  double charge = qDist() > 0.5 ? 1. : -1.;
+  double t      = tSigma * gauss();
+  double type_test = qDist() ? 1u : 0u;
 
-  UniformIndex particleTypeChoice(0u, qDist(rng) ? 1u : 0u);
+  std::cout << "type test: " << type_test << std::endl;
+
+  UniformIndex particleTypeChoice(0u, qDist() ? 1u : 0u);
   Acts::PdgParticle pdg = Acts::PdgParticle::eMuon;
 
-  const Acts::PdgParticle pdgChoices[] = {pdg, static_cast<Acts::PdgParticle>(-pdg), };    //warum leer zeichen?
-                                                                                          // braucht man 3 elements statt 2?
+  const Acts::PdgParticle pdgChoices[] = {pdg, static_cast<Acts::PdgParticle>(-pdg), };
+
+
   const double qChoices[] = {charge,-charge, };
 
+  RandomNumberClass randomNumber;
+
+  uint64_t spawnSeed = randomNumber.generateSeed(2);
+  std::mt19937 rng = randomNumber.spawnGenerator(spawnSeed);
 
   for (size_t ip = 1 ; ip <= nParticles; ++ip) {
     const auto pid = ActsFatras::Barcode(0u).setParticle(ip);
-    const unsigned int type = particleTypeChoice(rng);
+     const unsigned int type = particleTypeChoice(rng);
     const double q = qChoices[type];
-    const double phi    = phiDist(rng);
-    double eta    = etaDist(rng);
+    const double phi    = phiDist();
+    double eta    = etaDist();
     double theta  = 2 * atan(exp(-eta));
-    double pt     = ptDist(rng);
+    double pt     = ptDist();
     double p      = pt / sin(theta);
 
     Acts::Vector3 direction;

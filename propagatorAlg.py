@@ -59,8 +59,8 @@ c.debugGeometry = True
 c.outputFileName = "MyObjFileParticleGunTest"
 
 d = RandomNumberSvc("MyRndNbrSvc")
-d.algNum = len(algList);
-d.evNum = b.ntests;
+d.algNum = 1;
+
 
 
 e = EventCounter("MyEventCounter")

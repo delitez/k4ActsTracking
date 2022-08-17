@@ -12,9 +12,7 @@
 #include "GaudiKernel/ServiceHandle.h"
 #include "IGeoSvc.h"
 #include "IPropagatorAlg.h"
-#include "IRandomNumberSvc.h"
 #include "ParticleGunAlg.h"
-#include "RandomNumberSvc.h"
 #include<boost/container/flat_set.hpp>
 
 
@@ -35,6 +33,10 @@
 #include "Acts/Surfaces/PerigeeSurface.hpp"
 #include "Acts/Utilities/Helpers.hpp"
 #include "Acts/Utilities/Logger.hpp"
+#include "GaudiKernel/IRndmGen.h"
+#include "GaudiKernel/IRndmGenSvc.h"
+#include "GaudiKernel/RndmGenerators.h"
+
 
 #include "AlgorithmContext.hpp"
 #include "CommonGeometry.hpp"
@@ -73,7 +75,7 @@
 using RecordedMaterial      = Acts::MaterialInteractor::result_type;
 using RecordedMaterialTrack = std::pair<std::pair<Acts::Vector3, Acts::Vector3>, RecordedMaterial>;
 using PropagationOutput     = std::pair<std::vector<Acts::detail::Step>, RecordedMaterial>;
-std::optional<Acts::BoundSymMatrix> generateCovariance(std::mt19937& rng, std::normal_distribution<double>& gauss);
+std::optional<Acts::BoundSymMatrix> generateCovariance();
 
 class PropagatorAlg : public GaudiAlgorithm {
 public:
@@ -108,7 +110,7 @@ private:
 
   std::vector<PropagationOutput>      testvec;
   std::mt19937                        rng;
-  std::optional<Acts::BoundSymMatrix> generateCovariance(std::mt19937& rng, std::normal_distribution<double>& gauss);
+  std::optional<Acts::BoundSymMatrix> generateCovariance();
 
 
 
@@ -225,7 +227,7 @@ private:
 public:
   SmartIF<IGeoSvc> m_geoSvc;
 
-  SmartIF<IRandomNumberSvc> m_rndSvc;
+//  SmartIF<IRandomNumberSvc> m_rndSvc;
 
   explicit PropagatorAlg(const std::string&, ISvcLocator*);
 

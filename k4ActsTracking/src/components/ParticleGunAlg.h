@@ -1,7 +1,8 @@
 #ifndef ParticleGunAlg_H
 #define ParticleGunAlg_H
 
-
+// #include "IRandomNumberSvc.h"
+// #include "RandomNumberSvc.h"
 #include "Acts/Utilities/Helpers.hpp"
 #include "GaudiKernel/MsgStream.h"
 #include "GaudiKernel/Service.h"
@@ -11,11 +12,15 @@
 #include "GaudiKernel/DataObjectHandle.h"
 #include "GaudiKernel/AnyDataWrapper.h"
 #include "GaudiKernel/AnyDataHandle.h"
+#include "RandomNumberClass.h"
 #include "Acts/Definitions/Algebra.hpp"
 #include "ActsFatras/EventData/Particle.hpp"
 #include "ActsFatras/Utilities/ParticleData.hpp"
 #include "Acts/Definitions/Units.hpp"
 #include "Acts/Utilities/PdgParticle.hpp"
+#include "GaudiKernel/IRndmGen.h"
+#include "GaudiKernel/IRndmGenSvc.h"
+#include "GaudiKernel/RndmGenerators.h"
 #include <boost/container/flat_set.hpp>
 #include <random>
 #include <cmath>
@@ -48,9 +53,11 @@ class ParticleGunAlg : public GaudiAlgorithm {
 
 public:
 
-SimParticleContainer genVertexParticles(std::mt19937& rng, std::normal_distribution<double>& gauss);
+SimParticleContainer genVertexParticles();
 
 SimParticleContainer particles;
+
+
 
 private:
 
@@ -84,7 +91,7 @@ public:
 
   virtual StatusCode finalize() final;
 
-
+  // SmartIF<IRandomNumberSvc> m_rndSvc;
 };
 
 

@@ -10,14 +10,15 @@ DECLARE_COMPONENT(PropagatorAlg)
 
 using namespace Acts;
 
-std::optional<Acts::BoundSymMatrix> PropagatorAlg::generateCovariance(std::mt19937&                     rng,
-                                                                      std::normal_distribution<double>& gauss) {
+std::optional<Acts::BoundSymMatrix> PropagatorAlg::generateCovariance() {
+  Rndm::Numbers gauss( randSvc(), Rndm::Gauss( 0., 1. ) );
+
   if (covarianceTransport) {
     Acts::BoundSymMatrix newCov(m_cfg.correlations);
 
     Acts::BoundVector covs_smeared = m_cfg.covariances;
     for (size_t k = 0; k < size_t(covs_smeared.size()); ++k) {
-      covs_smeared[k] *= gauss(rng);
+      covs_smeared[k] *= gauss();
     }
 
     for (size_t i = 0; i < size_t(newCov.rows()); ++i) {
@@ -39,19 +40,10 @@ PropagatorAlg::~PropagatorAlg() {}
 
 StatusCode PropagatorAlg::initialize() {
   m_geoSvc = service("GeoSvc");
-  m_rndSvc = service("RandomNumberSvc");
 
   if (!m_geoSvc) {
     std::cout << "Unable to locate Geometry Service. " << std::endl;
     return StatusCode::FAILURE;
-  }
-
-  if (!m_rndSvc) {
-    std::cout << "Unable to use Random Number Service. " << std::endl;
-    return StatusCode::FAILURE;
-  }
-  else {
-    std::cout << "Random Number Service is initilazied. " << std::endl;
   }
 
   if (service("THistSvc", m_ths).isFailure()) {
@@ -70,19 +62,20 @@ StatusCode PropagatorAlg::initialize() {
 
 StatusCode PropagatorAlg::execute() {
   cleanTrees();
-  auto tSeed = m_rndSvc->getSeed();
 
-  std::cout << "tSeed: " << tSeed << std::endl;
-
-//  static int seed = 5;
+  static int tSeed = 5;
   std::mt19937                     rng{tSeed++};
-  std::normal_distribution<double> gauss(0., 1.);
-  std::round(gauss(rng));
 
-  std::uniform_real_distribution<double> phiDist(0, 2 * M_PI);
-  std::uniform_real_distribution<double> etaDist(-4.0, 4.0);
-  std::uniform_real_distribution<double> ptDist(10., 20.);
-  std::uniform_real_distribution<double> qDist(0., 1.);
+  // std::uniform_real_distribution<double> phiDist(0, 2 * M_PI);
+  // std::uniform_real_distribution<double> etaDist(-4.0, 4.0);
+  // std::uniform_real_distribution<double> ptDist(10., 20.);
+  // std::uniform_real_distribution<double> qDist(0., 1.);
+
+  Rndm::Numbers gauss( randSvc(), Rndm::Gauss( 0., 1. ) );
+  Rndm::Numbers phiDist( randSvc(), Rndm::Flat( 0., 2*M_PI ) );
+  Rndm::Numbers etaDist( randSvc(), Rndm::Flat( -4., 4. ) );
+  Rndm::Numbers ptDist( randSvc(), Rndm::Flat( 10., 20. ) );
+  Rndm::Numbers qDist( randSvc(), Rndm::Flat( 0., 1. ) );
 
   std::shared_ptr<const Acts::PerigeeSurface> surface =
       Acts::Surface::makeShared<Acts::PerigeeSurface>(Acts::Vector3(0., 0., 0.));
@@ -102,12 +95,12 @@ StatusCode PropagatorAlg::execute() {
 
     for (auto i = p_partvect->begin(); i < p_partvect->end(); i++) {
 
-    double d0     = d0Sigma * gauss(rng);    //TODO :: set from 4pos of the particle position
-    double z0     = z0Sigma * gauss(rng);     /// parameter aus singleboundtrackparameters, see link from 10.8.
-    double phi    = phiDist(rng);           /// random numbers-randomnumbersvc?
-    double eta    = etaDist(rng);
+    double d0     = d0Sigma * gauss();    //TODO :: set from 4pos of the particle position
+    double z0     = z0Sigma * gauss();     /// parameter aus singleboundtrackparameters, see link from 10.8.
+    double phi    = phiDist();           /// random numbers-randomnumbersvc?
+    double eta    = etaDist();
     double theta  = 2 * atan(exp(-eta));
-    double t      = tSigma * gauss(rng);
+    double t      = tSigma * gauss();
 
 
     double pt     = i->transverseMomentum();
@@ -125,7 +118,7 @@ StatusCode PropagatorAlg::execute() {
     Acts::Vector3 sMomentum(0., 0., 0.);
 
     // The covariance generation
-    auto cov = generateCovariance(rng, gauss);
+    auto cov = generateCovariance();
 
 
     auto tGeometry = m_geoSvc->trackingGeometry();
