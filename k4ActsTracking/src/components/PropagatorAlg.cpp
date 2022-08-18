@@ -1,11 +1,8 @@
 // D. Elitez, July 2022
+// Particle propagation for gaudi4acts
 
 #include "PropagatorAlg.h"
-#include <boost/program_options.hpp>
-#include "GaudiKernel/Service.h"
-#include "TGeoManager.h"
-#include "TTree.h"
-#include "GaudiKernel/ServiceHandle.h"
+
 DECLARE_COMPONENT(PropagatorAlg)
 
 using namespace Acts;
@@ -13,10 +10,13 @@ using namespace Acts;
 std::optional<Acts::BoundSymMatrix> PropagatorAlg::generateCovariance() {
   Rndm::Numbers gauss( randSvc(), Rndm::Gauss( 0., 1. ) );
 
-  if (covarianceTransport) {
-    Acts::BoundSymMatrix newCov(m_cfg.correlations);
+  Acts::BoundVector covariances = Acts::BoundVector::Zero();
+  Acts::BoundSymMatrix correlations = Acts::BoundSymMatrix::Identity();
 
-    Acts::BoundVector covs_smeared = m_cfg.covariances;
+  if (covarianceTransport) {
+    Acts::BoundSymMatrix newCov(correlations);
+
+    Acts::BoundVector covs_smeared = covariances;
     for (size_t k = 0; k < size_t(covs_smeared.size()); ++k) {
       covs_smeared[k] *= gauss();
     }
@@ -39,37 +39,36 @@ PropagatorAlg::PropagatorAlg(const std::string& aName, ISvcLocator* aSvcLoc) : G
 PropagatorAlg::~PropagatorAlg() {}
 
 StatusCode PropagatorAlg::initialize() {
+
+  MsgStream log(msgSvc(), name());
+
   m_geoSvc = service("GeoSvc");
 
   if (!m_geoSvc) {
-    std::cout << "Unable to locate Geometry Service. " << std::endl;
+    log << MSG::ERROR << "Unable to locate Geometry Service." << endmsg;
     return StatusCode::FAILURE;
   }
 
   if (service("THistSvc", m_ths).isFailure()) {
-    error() << "Couldn't get THistSvc" << endmsg;
+    log << MSG::ERROR << "Couldn't get THistSvc." << endmsg;
     return StatusCode::FAILURE;
   }
 
   m_outputTree = new TTree("hits", "PropagatorAlg hits ntuple");
   if (m_ths->regTree("/rec/NtuplesHits", m_outputTree).isFailure()) {
-    error() << "Couldn't register hits tree" << endmsg;
+    log << MSG::ERROR << "Couldn't register hits tree." << endmsg;
   }
+  
   initializeTrees();
 
   return StatusCode::SUCCESS;
 }
 
 StatusCode PropagatorAlg::execute() {
+
+  MsgStream log(msgSvc(), name());
+
   cleanTrees();
-
-  static int tSeed = 5;
-  std::mt19937                     rng{tSeed++};
-
-  // std::uniform_real_distribution<double> phiDist(0, 2 * M_PI);
-  // std::uniform_real_distribution<double> etaDist(-4.0, 4.0);
-  // std::uniform_real_distribution<double> ptDist(10., 20.);
-  // std::uniform_real_distribution<double> qDist(0., 1.);
 
   Rndm::Numbers gauss( randSvc(), Rndm::Gauss( 0., 1. ) );
   Rndm::Numbers phiDist( randSvc(), Rndm::Flat( 0., 2*M_PI ) );
@@ -175,7 +174,7 @@ StatusCode PropagatorAlg::execute() {
       }
     }
     m_outputTree->Fill();
-  } ///// END OF FOR LOOP OVER NTESTS
+  }
 
   return StatusCode::SUCCESS;
 }

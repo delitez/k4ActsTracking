@@ -1,21 +1,31 @@
-
 // D. Elitez, July 2022
 // Based on eic/juggler
 
 #ifndef PropagatorAlg_H
 #define PropagatorAlg_H
 
+//GAUDI
 #include "Gaudi/Property.h"
 #include "GaudiAlg/GaudiAlgorithm.h"
 #include "GaudiKernel/MsgStream.h"
 #include "GaudiKernel/Service.h"
 #include "GaudiKernel/ServiceHandle.h"
-#include "IGeoSvc.h"
-#include "IPropagatorAlg.h"
-#include "ParticleGunAlg.h"
-#include<boost/container/flat_set.hpp>
+#include "GaudiKernel/IRndmGen.h"
+#include "GaudiKernel/IRndmGenSvc.h"
+#include "GaudiKernel/RndmGenerators.h"
+#include "GaudiKernel/ITHistSvc.h"
 
+//BOOST
+#include <boost/container/flat_set.hpp>
+#include <boost/program_options.hpp>
 
+//ROOT
+#include "TGeoManager.h"
+#include "TTree.h"
+#include "TGraph.h"
+#include "TH1F.h"
+
+//ACTS
 #include "Acts/Definitions/Algebra.hpp"
 #include "Acts/Definitions/Units.hpp"
 #include "Acts/EventData/NeutralTrackParameters.hpp"
@@ -33,44 +43,19 @@
 #include "Acts/Surfaces/PerigeeSurface.hpp"
 #include "Acts/Utilities/Helpers.hpp"
 #include "Acts/Utilities/Logger.hpp"
-#include "GaudiKernel/IRndmGen.h"
-#include "GaudiKernel/IRndmGenSvc.h"
-#include "GaudiKernel/RndmGenerators.h"
 
-
-#include "AlgorithmContext.hpp"
-#include "CommonGeometry.hpp"
-#include "CommonOptions.hpp"
-#include "IBaseDetector.hpp"
-#include "MagneticFieldOptions.hpp"
-#include "ProcessCode.hpp"
-
-#include "WhiteBoard.hpp"
+#include "IGeoSvc.h"
+#include "IPropagatorAlg.h"
+#include "ParticleGunAlg.h"
 
 #include <cmath>
 #include <limits>
 #include <memory>
 #include <optional>
 #include <random>
-
-#include "Acts/Definitions/Units.hpp"
-#include "Acts/Utilities/Logger.hpp"
-#include "CommonOptions.hpp"
-#include "Gaudi/Property.h"
-#include "GaudiAlg/GaudiAlgorithm.h"
-#include "GaudiKernel/MsgStream.h"
-#include "GaudiKernel/Service.h"
-#include "GaudiKernel/ServiceHandle.h"
-#include "Options.hpp"
-
-#include "GaudiKernel/ITHistSvc.h"
-
-#include "TGraph.h"
-#include "TH1F.h"
-
 #include <iostream>
 
-#include <boost/program_options.hpp>
+
 
 using RecordedMaterial      = Acts::MaterialInteractor::result_type;
 using RecordedMaterialTrack = std::pair<std::pair<Acts::Vector3, Acts::Vector3>, RecordedMaterial>;
@@ -79,40 +64,25 @@ std::optional<Acts::BoundSymMatrix> generateCovariance();
 
 class PropagatorAlg : public GaudiAlgorithm {
 public:
-  struct Config {
-    /// how to set it up
-    std::mt19937 randomNumberSvc{0};
+  SmartIF<IGeoSvc> m_geoSvc;
 
-    /// phi range
-    std::pair<double, double> phiRange = {-M_PI, M_PI};
-    /// eta range
-    std::pair<double, double> etaRange = {-4., 4.};
-    /// pt range
-    std::pair<double, double> ptRange = {100 * Acts::UnitConstants::MeV, 100 * Acts::UnitConstants::GeV};
+  explicit PropagatorAlg(const std::string&, ISvcLocator*);
 
-    /// The step collection to be stored
-    std::string propagationStepCollection = "PropagationSteps";
+  virtual ~PropagatorAlg();
 
-    /// The material collection to be stored
-    std::string propagationMaterialCollection = "RecordedMaterialTracks";
+  StatusCode initialize() override final;
 
-    /// The covariance values
-    Acts::BoundVector covariances = Acts::BoundVector::Zero();
+  virtual StatusCode execute() final;
 
-    /// The correlation terms
-    Acts::BoundSymMatrix correlations = Acts::BoundSymMatrix::Identity();
-  };
+  virtual StatusCode finalize() final;
 
-  const Config& config() const { return m_cfg; }
+  virtual StatusCode initializeTrees() final;
+
+  virtual StatusCode cleanTrees() final;
 
 private:
-  Config                              m_cfg;
 
-  std::vector<PropagationOutput>      testvec;
-  std::mt19937                        rng;
   std::optional<Acts::BoundSymMatrix> generateCovariance();
-
-
 
   ITHistSvc* m_ths{nullptr};
   TTree*     m_outputTree{nullptr};
@@ -131,7 +101,6 @@ private:
   std::vector<int> m_approachID;   ///< surface identifier
   std::vector<int> m_sensitiveID;  ///< surface identifier
 
-  Config readPropagationConfig(const boost::program_options::variables_map& vm);
 
   DataObjectHandle<AnyDataWrapper<SimParticleContainer>> p_partvec{"/Event/testVec", Gaudi::DataHandle::Reader, this};
 
@@ -224,24 +193,7 @@ private:
     }
   }
 
-public:
-  SmartIF<IGeoSvc> m_geoSvc;
 
-//  SmartIF<IRandomNumberSvc> m_rndSvc;
-
-  explicit PropagatorAlg(const std::string&, ISvcLocator*);
-
-  virtual ~PropagatorAlg();
-
-  StatusCode initialize() override final;
-
-  virtual StatusCode execute() final;
-
-  virtual StatusCode finalize() final;
-
-  virtual StatusCode initializeTrees() final;
-
-  virtual StatusCode cleanTrees() final;
 
 };  // class
 

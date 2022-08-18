@@ -1,9 +1,10 @@
+// D. Elitez, August 2022
+// Particle gun for gaudi4acts
+
 #ifndef ParticleGunAlg_H
 #define ParticleGunAlg_H
 
-// #include "IRandomNumberSvc.h"
-// #include "RandomNumberSvc.h"
-#include "Acts/Utilities/Helpers.hpp"
+//GAUDI
 #include "GaudiKernel/MsgStream.h"
 #include "GaudiKernel/Service.h"
 #include "GaudiKernel/ServiceHandle.h"
@@ -12,16 +13,21 @@
 #include "GaudiKernel/DataObjectHandle.h"
 #include "GaudiKernel/AnyDataWrapper.h"
 #include "GaudiKernel/AnyDataHandle.h"
-#include "RandomNumberClass.h"
+#include "GaudiKernel/IRndmGen.h"
+#include "GaudiKernel/IRndmGenSvc.h"
+#include "GaudiKernel/RndmGenerators.h"
+
+//ACTS
+#include "Acts/Utilities/Helpers.hpp"
 #include "Acts/Definitions/Algebra.hpp"
 #include "ActsFatras/EventData/Particle.hpp"
 #include "ActsFatras/Utilities/ParticleData.hpp"
 #include "Acts/Definitions/Units.hpp"
 #include "Acts/Utilities/PdgParticle.hpp"
-#include "GaudiKernel/IRndmGen.h"
-#include "GaudiKernel/IRndmGenSvc.h"
-#include "GaudiKernel/RndmGenerators.h"
+
+//BOOST
 #include <boost/container/flat_set.hpp>
+
 #include <random>
 #include <cmath>
 
@@ -58,7 +64,6 @@ SimParticleContainer genVertexParticles();
 SimParticleContainer particles;
 
 
-
 private:
 
 DataObjectHandle<AnyDataWrapper<SimParticleContainer>> m_partvec{"/Event/testVec", Gaudi::DataHandle::Writer, this};
@@ -79,7 +84,6 @@ public:
 
   Gaudi::Property<std::string> objectPath{this, "objectPath", " ", "Path for the object."};
 
-  // std::shared_ptr<VertexGenerator> vertex = nullptr;
 
   ParticleGunAlg(const std::string& name, ISvcLocator* svc);
 
@@ -91,15 +95,7 @@ public:
 
   virtual StatusCode finalize() final;
 
-  // SmartIF<IRandomNumberSvc> m_rndSvc;
 };
-
-
-
-
-
-
-
 
 
 #endif

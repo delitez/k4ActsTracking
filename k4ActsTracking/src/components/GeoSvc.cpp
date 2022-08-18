@@ -13,7 +13,7 @@
 #include "DD4hep/Printout.h"
 #include "GaudiKernel/Service.h"
 #include "TGeoManager.h"
-#include "RandomNumberSvc.h"
+
 
 using namespace Gaudi;
 
@@ -72,7 +72,6 @@ StatusCode GeoSvc::initialize() {
     m_log << MSG::VERBOSE << "Geometry debugging is OFF." << endmsg;
     return StatusCode::SUCCESS;
   }
-  std::cout << "works!" << std::endl;
 
   return StatusCode::SUCCESS;
 }

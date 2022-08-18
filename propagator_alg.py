@@ -1,13 +1,14 @@
+# D. Elitez, August 2022
+# Particle gun for gaudi4acts
+
 import os
 import sys
 from pprint import pprint
 from Gaudi.Configuration import *
 
-from Configurables import objectTest
 from Configurables import PropagatorAlg
 from Configurables import GeoSvc
 from Configurables import ParticleGunAlg
-from Configurables import RandomNumberSvc
 from Configurables import EventCounter
 
 sys.path.append('/home/delitez/ACTS/spack/k4actstracking')
@@ -16,21 +17,15 @@ import actsUnits
 
 algList = []
 
-# a = objectTest("MyobjectTest")
-# algList.append(a)
-
-
 a = ParticleGunAlg("MyParticleGunAlg")
 a.d0Sigma = 15 * actsUnits.um
 a.z0Sigma = 55 * actsUnits.mm
 a.tSigma = 1 * actsUnits.ns
 a.nMultiplicity = 5;
-a.nParticles = 10;
-#a.objectPath = "/Event/MyParticle4"
+a.nParticles = 50;
 algList.append(a)
 
 b = PropagatorAlg("PropagatorAlg")
-#
 b.mode = 0
 b.sterileLogger = False
 b.debugOutput = False
@@ -47,10 +42,9 @@ b.qpSigma = 0.0001 / 1 * actsUnits.GeV
 b.tSigma = 1 * actsUnits.ns
 b.ptLoopers = 500 * actsUnits.MeV
 b.maxStepSize = 3 * actsUnits.m
-b.sensitiveIDopt = 1
+b.sensitiveIDopt = 0
 
 algList.append(b)
-
 
 
 c = GeoSvc("GeoSvc")
@@ -58,22 +52,19 @@ c.detectors = ["/home/delitez/ACTS/acts/thirdparty/OpenDataDetector/xml/OpenData
 c.debugGeometry = True
 c.outputFileName = "MyObjFileParticleGunTest"
 
-d = RandomNumberSvc("MyRndNbrSvc")
-d.algNum = 1;
 
 
-
-e = EventCounter("MyEventCounter")
-algList.append(e)
+d = EventCounter("MyEventCounter")
+algList.append(d)
 
 
 from Configurables import ApplicationMgr
 
 from Configurables import THistSvc
-THistSvc().Output = ["rec DATAFILE='propagatorAlgOutput_PARTICLEGUN.root' TYP='ROOT' OPT='RECREATE'"]
+THistSvc().Output = ["rec DATAFILE='propagatorAlgOutput_test.root' TYP='ROOT' OPT='RECREATE'"]
 THistSvc().OutputLevel = DEBUG
 THistSvc().PrintAll = True
 THistSvc().AutoSave = True
 THistSvc().AutoFlush = True
 
-ApplicationMgr(TopAlg=algList, EvtSel="NONE", EvtMax=20, ExtSvc=[c,d], OutputLevel=DEBUG)
+ApplicationMgr(TopAlg=algList, EvtSel="NONE", EvtMax=20, ExtSvc=[c], OutputLevel=DEBUG)
