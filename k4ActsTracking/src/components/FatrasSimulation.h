@@ -12,11 +12,11 @@
 #include "GaudiKernel/DataObjectHandle.h"
 #include "GaudiKernel/IRndmGen.h"
 #include "GaudiKernel/IRndmGenSvc.h"
+#include "GaudiKernel/ITHistSvc.h"
 #include "GaudiKernel/MsgStream.h"
 #include "GaudiKernel/RndmGenerators.h"
 #include "GaudiKernel/Service.h"
 #include "GaudiKernel/ServiceHandle.h"
-#include "GaudiKernel/ITHistSvc.h"
 
 //BOOST
 #include <boost/container/flat_set.hpp>
@@ -56,25 +56,25 @@ struct HitSurfaceSelector {
   bool operator()(const Acts::Surface& surface) const {
     bool isSensitive = surface.associatedDetectorElement() != nullptr;
     bool isMaterial  = surface.surfaceMaterial() != nullptr;
-    bool isPassive = not(isSensitive or isMaterial);
+    bool isPassive   = not(isSensitive or isMaterial);
     return (isSensitive and sensitive) or (isMaterial and material) or (isPassive and passive);
   }
 };
 
 namespace detail {
-struct CompareParticleId {
-  using is_transparent = void;
-  constexpr bool operator()(const ActsFatras::Particle& lhs, const ActsFatras::Particle& rhs) const {
-    return lhs.particleId() < rhs.particleId();
-  }
-  constexpr bool operator()(ActsFatras::Barcode lhs, const ActsFatras::Particle& rhs) const {
-    return lhs < rhs.particleId();
-  }
-  constexpr bool operator()(const ActsFatras::Particle& lhs, ActsFatras::Barcode rhs) const {
-    return lhs.particleId() < rhs;
-  }
-};
-}
+  struct CompareParticleId {
+    using is_transparent = void;
+    constexpr bool operator()(const ActsFatras::Particle& lhs, const ActsFatras::Particle& rhs) const {
+      return lhs.particleId() < rhs.particleId();
+    }
+    constexpr bool operator()(ActsFatras::Barcode lhs, const ActsFatras::Particle& rhs) const {
+      return lhs < rhs.particleId();
+    }
+    constexpr bool operator()(const ActsFatras::Particle& lhs, ActsFatras::Barcode rhs) const {
+      return lhs.particleId() < rhs;
+    }
+  };
+}  // namespace detail
 
 struct GeometryIdGetter {
   constexpr Acts::GeometryIdentifier operator()(Acts::GeometryIdentifier geometryId) const { return geometryId; }
@@ -125,7 +125,6 @@ public:
 
   virtual StatusCode cleanTrees() final;
 
-
 private:
   ITHistSvc* m_ths{nullptr};
   TTree*     m_outputTree{nullptr};
@@ -138,11 +137,11 @@ private:
   std::vector<float> m_dy;  ///< global direction y
   std::vector<float> m_dz;  ///< global direction z
 
-  std::vector<int> m_volumeID;     ///< volume identifier
-  std::vector<int> m_boundaryID;   ///< boundary identifier
-  std::vector<int> m_layerID;      ///< layer identifier if
-  std::vector<int> m_approachID;   ///< surface identifier
-  std::vector<int> m_sensitiveID;  ///< surface identifier
+  std::vector<int>                                       m_volumeID;     ///< volume identifier
+  std::vector<int>                                       m_boundaryID;   ///< boundary identifier
+  std::vector<int>                                       m_layerID;      ///< layer identifier if
+  std::vector<int>                                       m_approachID;   ///< surface identifier
+  std::vector<int>                                       m_sensitiveID;  ///< surface identifier
   DataObjectHandle<AnyDataWrapper<SimParticleContainer>> p_partvec{"/Event/testVec", Gaudi::DataHandle::Reader, this};
 };
 

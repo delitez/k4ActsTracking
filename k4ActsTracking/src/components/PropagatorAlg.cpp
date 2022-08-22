@@ -8,9 +8,9 @@ DECLARE_COMPONENT(PropagatorAlg)
 using namespace Acts;
 
 std::optional<Acts::BoundSymMatrix> PropagatorAlg::generateCovariance() {
-  Rndm::Numbers gauss( randSvc(), Rndm::Gauss( 0., 1. ) );
+  Rndm::Numbers gauss(randSvc(), Rndm::Gauss(0., 1.));
 
-  Acts::BoundVector covariances = Acts::BoundVector::Zero();
+  Acts::BoundVector    covariances  = Acts::BoundVector::Zero();
   Acts::BoundSymMatrix correlations = Acts::BoundSymMatrix::Identity();
 
   if (covarianceTransport) {
@@ -39,7 +39,6 @@ PropagatorAlg::PropagatorAlg(const std::string& aName, ISvcLocator* aSvcLoc) : G
 PropagatorAlg::~PropagatorAlg() {}
 
 StatusCode PropagatorAlg::initialize() {
-
   MsgStream log(msgSvc(), name());
 
   m_geoSvc = service("GeoSvc");
@@ -58,23 +57,22 @@ StatusCode PropagatorAlg::initialize() {
   if (m_ths->regTree("/rec/NtuplesHits", m_outputTree).isFailure()) {
     log << MSG::ERROR << "Couldn't register hits tree." << endmsg;
   }
-  
+
   initializeTrees();
 
   return StatusCode::SUCCESS;
 }
 
 StatusCode PropagatorAlg::execute() {
-
   MsgStream log(msgSvc(), name());
 
   cleanTrees();
 
-  Rndm::Numbers gauss( randSvc(), Rndm::Gauss( 0., 1. ) );
-  Rndm::Numbers phiDist( randSvc(), Rndm::Flat( 0., 2*M_PI ) );
-  Rndm::Numbers etaDist( randSvc(), Rndm::Flat( -4., 4. ) );
-  Rndm::Numbers ptDist( randSvc(), Rndm::Flat( 10., 20. ) );
-  Rndm::Numbers qDist( randSvc(), Rndm::Flat( 0., 1. ) );
+  Rndm::Numbers gauss(randSvc(), Rndm::Gauss(0., 1.));
+  Rndm::Numbers phiDist(randSvc(), Rndm::Flat(0., 2 * M_PI));
+  Rndm::Numbers etaDist(randSvc(), Rndm::Flat(-3., 3.));
+  Rndm::Numbers ptDist(randSvc(), Rndm::Flat(10., 20.));
+  Rndm::Numbers qDist(randSvc(), Rndm::Flat(0., 1.));
 
   std::shared_ptr<const Acts::PerigeeSurface> surface =
       Acts::Surface::makeShared<Acts::PerigeeSurface>(Acts::Vector3(0., 0., 0.));
@@ -92,33 +90,28 @@ StatusCode PropagatorAlg::execute() {
 
   const SimParticleContainer* p_partvect = p_partvec.get();
 
-    for (auto i = p_partvect->begin(); i < p_partvect->end(); i++) {
-
-    double d0     = d0Sigma * gauss();    //TODO :: set from 4pos of the particle position
-    double z0     = z0Sigma * gauss();     /// parameter aus singleboundtrackparameters, see link from 10.8.
-    double phi    = phiDist();           /// random numbers-randomnumbersvc?
-    double eta    = etaDist();
-    double theta  = 2 * atan(exp(-eta));
-    double t      = tSigma * gauss();
-
+  for (auto i = p_partvect->begin(); i < p_partvect->end(); i++) {
+    double d0    = d0Sigma * gauss();  //TODO :: set from 4pos of the particle position
+    double z0    = z0Sigma * gauss();  /// parameter aus singleboundtrackparameters, see link from 10.8.
+    double phi   = phiDist();          /// random numbers-randomnumbersvc?
+    double eta   = etaDist();
+    double theta = 2 * atan(exp(-eta));
+    double t     = tSigma * gauss();
 
     double pt     = i->transverseMomentum();
     double p      = pt / sin(theta);
     double charge = i->charge();
     double qop    = charge / p;
 
-
     // parameters
     Acts::BoundVector pars;
     pars << d0, z0, phi, theta, qop, t;
-
 
     Acts::Vector3 sPosition(0., 0., 0.);
     Acts::Vector3 sMomentum(0., 0., 0.);
 
     // The covariance generation
     auto cov = generateCovariance();
-
 
     auto tGeometry = m_geoSvc->trackingGeometry();
 

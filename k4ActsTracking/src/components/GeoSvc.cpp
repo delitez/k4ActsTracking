@@ -14,7 +14,6 @@
 #include "GaudiKernel/Service.h"
 #include "TGeoManager.h"
 
-
 using namespace Gaudi;
 
 DECLARE_COMPONENT(GeoSvc)

@@ -7,13 +7,13 @@
 //GAUDI
 #include "Gaudi/Property.h"
 #include "GaudiAlg/GaudiAlgorithm.h"
-#include "GaudiKernel/MsgStream.h"
-#include "GaudiKernel/Service.h"
-#include "GaudiKernel/ServiceHandle.h"
 #include "GaudiKernel/IRndmGen.h"
 #include "GaudiKernel/IRndmGenSvc.h"
-#include "GaudiKernel/RndmGenerators.h"
 #include "GaudiKernel/ITHistSvc.h"
+#include "GaudiKernel/MsgStream.h"
+#include "GaudiKernel/RndmGenerators.h"
+#include "GaudiKernel/Service.h"
+#include "GaudiKernel/ServiceHandle.h"
 
 //BOOST
 #include <boost/container/flat_set.hpp>
@@ -21,9 +21,9 @@
 
 //ROOT
 #include "TGeoManager.h"
-#include "TTree.h"
 #include "TGraph.h"
 #include "TH1F.h"
+#include "TTree.h"
 
 //ACTS
 #include "Acts/Definitions/Algebra.hpp"
@@ -49,13 +49,11 @@
 #include "ParticleGunAlg.h"
 
 #include <cmath>
+#include <iostream>
 #include <limits>
 #include <memory>
 #include <optional>
 #include <random>
-#include <iostream>
-
-
 
 using RecordedMaterial      = Acts::MaterialInteractor::result_type;
 using RecordedMaterialTrack = std::pair<std::pair<Acts::Vector3, Acts::Vector3>, RecordedMaterial>;
@@ -81,7 +79,6 @@ public:
   virtual StatusCode cleanTrees() final;
 
 private:
-
   std::optional<Acts::BoundSymMatrix> generateCovariance();
 
   ITHistSvc* m_ths{nullptr};
@@ -100,7 +97,6 @@ private:
   std::vector<int> m_layerID;      ///< layer identifier if
   std::vector<int> m_approachID;   ///< surface identifier
   std::vector<int> m_sensitiveID;  ///< surface identifier
-
 
   DataObjectHandle<AnyDataWrapper<SimParticleContainer>> p_partvec{"/Event/testVec", Gaudi::DataHandle::Reader, this};
 
@@ -192,8 +188,6 @@ private:
       return pOutput;
     }
   }
-
-
 
 };  // class
 
